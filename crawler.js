@@ -1,136 +1,171 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const { TimeoutError } = require('puppeteer');
+const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 const changeTorIp = require('./tor-config');
 const { downloadFile } = require('./download-utils');
+const readline = require('readline');
+const log = require('./logger');
 
-let dataBuffer = []; // Буфер для временного хранения данных
+puppeteer.use(StealhPlugin());
 
-async function extractData(page, pdfFolderPath) {
-    const data = await page.evaluate(() => {
-        let authors_string = '';  // TODO: Extract this
-        let full_abstract = '';  // TODO: Extract this
-        let formatted_keywords = '';  // TODO: Extract this
-
-        const metaContent = (name) => {
-            const element = document.querySelector(`meta[name="${name}"]`);
-            return element ? element.content : null;
+async function extractData(page, jsonFolderPath, pdfFolderPath, url, downloadPDF = true) {
+    log(`Processing URL: ${url}`);
+    const meta_data = await page.evaluate(() => {
+        const getMetaContent = (selectors) => {
+            for (const selector of selectors) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    return element.content;
+                }
+            }
+            return '';
         };
-        return {
-            title: metaContent('citation_title'),
-            date: metaContent('citation_publication_date'),
-            mf_doi: metaContent('citation_doi'),
-            //author: authors_string,
-            mf_journal: metaContent('citation_journal_title'),
-            volume_info: metaContent('citation_volume'),
-            issue_info: metaContent('citation_issue'),
-            mf_issn: metaContent('citation_issn'),
-            mf_publisher: metaContent('citation_publisher'),
-            //abstract: full_abstract,
-            //keywords: formatted_keywords,
-            mf_url: window.location.href
-        };
-    });
+    
+        const title = getMetaContent(['meta[name="citation_title"]']);
+        const date = getMetaContent(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]']);
+        const mf_doi = getMetaContent(['meta[name="citation_doi"]']);
+        const mf_journal = getMetaContent(['meta[name="citation_journal_title"]']);
+        const mf_issn = getMetaContent(['meta[name="citation_issn"]']);
+        const publisher = getMetaContent(['meta[name="citation_publisher"]']);
+        const orcid = getMetaContent(['meta[name="citation_author_orcid"]']);
+        const volume = getMetaContent(['meta[name="citation_volume"]']);
+        const issue = getMetaContent(['meta[name="citation_issue"]']);
+        const first_page = getMetaContent(['meta[name="citation_firstpage"]']);
+        const language = getMetaContent(['meta[name="citation_language"]']);
+    
+        const metadata = { "title": title, "date": date, "mf_doi": mf_doi, "mf_journal": mf_journal, "mf_issn": mf_issn, "publisher": publisher, "orcid": orcid, "volume": volume, "issue": issue, "first_page": first_page, "language": language };
+        // log(`Data extracted from ${url}`);
+        // log(`Metadata: ${JSON.stringify(metadata)}`);
+        return metadata;
+    }, log);
 
-    const [pdfLinkElement] = await page.$x('//a[contains(@href, ".pdf")]');
-    if (pdfLinkElement) {
-        data.pdf_link = await page.evaluate(el => el.href, pdfLinkElement);
+    const data = meta_data;
 
-        const pdfFileName = data.pdf_link.split('/').pop();
-        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
-        await downloadFile(data.pdf_link, pdfSavePath);
-        
-        data.path = pdfSavePath;
+    if (downloadPDF) {
+        const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
+        const pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*article.*pdf/));
+
+        for (const pdfLink of pdfLinksToDownload) {
+            const pdfFileName = pdfLink.split('/').pop();
+            const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+            await downloadFile(pdfLink, pdfSavePath).then(() => {
+                // log(`PDF downloaded successfully from ${pdfLink}`);
+            }).catch((error) => {
+                // log(`Failed to download PDF from ${pdfLink}. Error: ${error.message}`);
+            });
+        }
+
+        data.pdfLinksToDownload = pdfLinksToDownload;
     }
 
-    return data;
+    const jsonData = JSON.stringify(data, null, 2);
+    const encodedUrl = encodeURIComponent(url); // Для названия файла
+    const jsonFilePath = path.join(jsonFolderPath, `${encodedUrl}.json`);
+    fs.writeFileSync(jsonFilePath, jsonData);
 }
 
 async function shouldChangeIP(page) {
-    const status = page.status();
+    const status = await page.evaluate(() => {
+        return document.readyState; // Используйте любые данные или свойства, которые позволяют вам определить состояние страницы.
+    });
     const currentURL = page.url();
 
-    if (status < 200 || status >= 400 || currentURL.includes("hcvalidate")) {
-        await changeTorIp();  // функция из модуля tor-config.js
+    // Условие для смены IP-адреса, включая статус код и паттерн в URL
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
+        await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
+        await changeTorIp();
+        log('IP address changed successfully.');
         return true;
     }
     return false;
 }
 
-async function saveDataToFile(data, filePath) {
-    let existingData = [];
-    if (fs.existsSync(filePath)) {
-        existingData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    }
-    const combinedData = [...existingData, ...data];
-    fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2));
-}
+async function getCurrentIP() {
+    return new Promise((resolve, reject) => {
+        const request = require('request');
 
-async function navigateToRecordPages(page, pdfFolderPath, browser) {
-    await page.waitForTimeout(10000);
-    const journalLinks = await page.$$eval('a[href*="/journal/"]', links => links.map(link => link.href));
-    for (const journalLink of journalLinks) {
-        await page.goto(journalLink);
+        const options = {
+            url: 'https://api.ipify.org',
+            proxy: 'http://127.0.0.1:8118', // Указание прокси
+        };
 
-        //if (await shouldChangeIP(page)) continue;
-        // 3. Нажимаем на кнопку #latestVolumeIssues.
-        await page.click('#latestVolumeIssues');
-
-        // 4. Из-за возможного асинхронного поведения сайта добавляем задержку или ожидаем какого-либо элемента.
-        await page.waitForTimeout(5000);  // или используйте page.waitForSelector() для ожидания какого-либо элемента на странице.
-
-        // 5. Если после нажатия на кнопку мы находимся на странице /issue/, переходим по ссылке с классом .mr-1.
-        if (page.url().includes("/issue/")) {
-            //if (await shouldChangeIP(page)) continue;
-            await page.click('.mr-1');
-
-            // 6. Собираем все ссылки, которые содержат /article/*/meta.
-            const articleLinks = await page.evaluate(() => {
-                return Array.from(document.querySelectorAll("a[href]"))
-                    .filter(a => a.href.match(/.*\/article\/.*\/meta$/))
-                    .map(link => link.href);
-            });
-            // const articleLinks = await page.$$eval('a[href*="/article/*/meta"]', links => links.map(link => link.href));
-            console.log(articleLinks);
-            for (const articleLink of articleLinks) {
-                // Здесь вы можете перейти на каждую статью и собрать данные согласно вашему предыдущему коду.
-                //if (await shouldChangeIP(page)) continue;
-                const newPage = await browser.newPage();
-                await newPage.goto(articleLink);
-                const data = await extractData(page, pdfFolderPath);
-                dataBuffer.push(data);
-
-                if (dataBuffer.length >= 10){
-                    saveDataToFile(dataBuffer, path.join(pdfFolderPath, 'metadata.json'));
-                    dataBuffer = [];
-                }
-
-                await newPage.close();
-                // fs.writeFileSync(path.join(pdfFolderPath, 'metadata.json'), JSON.stringify(data));
+        request(options, (error, response, body) => {
+            if (!error && response.statusCode === 200) {
+                log(`Current IP address: ${body}`);
+                resolve(body);
+            } else {
+                log(`Error getting current IP address. Error: ${error.message}`);
+                reject(error);
             }
-        }
-    }
+        });
+    });
 }
 
 async function crawl() {
+    try {
+        await changeTorIp();
+    } catch (error) {
+        log(`Error changing IP address: ${error.message}`);
+        //return;
+    }
+
+    // Получить текущий IP-адрес
+    const currentIP = await getCurrentIP();
+
+    console.log('Текущий IP-адрес:', currentIP);
+
+
     const browser = await puppeteer.launch({
-        args: ['--proxy-server=127.0.0.1:8118'],
+        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
         headless: false
     });
 
     const page = await browser.newPage();
-    await page.goto('https://iopscience.iop.org/journalList');
 
-    const hostName = new URL(page.url()).hostname;
-    const dataFolderPath = path.join(__dirname, hostName);
-    const pdfFolderPath = path.join(dataFolderPath, 'pdf');
+    const hostNameForDir = process.argv[2] || "default_host_name";
+    const outputFolderPath = path.join(__dirname, 'output');
+    const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
+    const jsonFolderPath = path.join(siteFolderPath, 'jsons');
+    const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
 
-    if (!fs.existsSync(dataFolderPath)) fs.mkdirSync(dataFolderPath);
+    // Создать структуру папок, если они не существуют
+    if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
+    if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
+    if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
     if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
 
-    await navigateToRecordPages(page, pdfFolderPath, browser);
+    const rl = readline.createInterface({
+        input: fs.createReadStream('your_links_file.txt') // Путь к файлу с ссылками
+    });
+    log('Crawling started.');
+    for await (const line of rl) {
+        const url = line.trim();
+        try {
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }).catch((error) => {
+                log(`Error processing ${url}: ${error.message}`);
+             });
+            if (await shouldChangeIP(page)) continue;
+            await extractData(page, jsonFolderPath, pdfFolderPath, url, false);
+            log(`Successfully processed ${url}`);
+        } catch (error) {
+            if (error instanceof TimeoutError) {
+                log(`TimeoutError: ${url}`);
+                continue;
+                // TODO ОБРАБОТКА ОШИБКИ
+            } else {
+                log(`Error processing ${url}: ${error.message}`);
+                continue;
+            }
+        }
+    }
 
     await browser.close();
+    log('Crawling finished.');
 }
 
-crawl().catch(console.error);
+crawl().catch((error) => {
+    log(`Error during crawling: ${error.message}`);
+    console.error(error);
+});
