@@ -119,7 +119,7 @@ async function crawl() {
 
     const browser = await puppeteer.launch({
         args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-        headless: false
+        headless: true
     });
 
     const page = await browser.newPage();
