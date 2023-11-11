@@ -7,10 +7,11 @@ const changeTorIp = require('./tor-config');
 const { downloadFile } = require('./download-utils');
 const readline = require('readline');
 const log = require('./logger');
+const crypto = require('crypto');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, url, downloadPDF = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaContent = (selectors) => {
@@ -43,27 +44,26 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, url, downloadPDF
 
     const data = meta_data;
 
+    var pdfLinksToDownload = [];
+
+    const encodedUrl = encodeURIComponent(url);
+    const baseFileName = crypto.createHash('md5').update(encodedUrl).digest('hex');
+    const jsonFileName = baseFileName + '.json';
+    const jsonFilePath = path.join(jsonFolderPath, jsonFileName);
+    const jsonData = JSON.stringify(data, null, 2);
+    fs.writeFileSync(jsonFilePath, jsonData);
+
     if (downloadPDF) {
         const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
-        const pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*article.*pdf/));
+        pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*article\/.*\/pdf.*/));
+        pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
         for (const pdfLink of pdfLinksToDownload) {
-            const pdfFileName = pdfLink.split('/').pop();
-            const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
-            await downloadFile(pdfLink, pdfSavePath).then(() => {
-                // log(`PDF downloaded successfully from ${pdfLink}`);
-            }).catch((error) => {
-                // log(`Failed to download PDF from ${pdfLink}. Error: ${error.message}`);
-            });
+            const pdfFileName = baseFileName + '.pdf';
+            const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
+            fs.appendFileSync(linksTxtPath, `${pdfLink} ${pdfFileName}\n`);
         }
-
-        data.pdfLinksToDownload = pdfLinksToDownload;
     }
-
-    const jsonData = JSON.stringify(data, null, 2);
-    const encodedUrl = encodeURIComponent(url); // Для названия файла
-    const jsonFilePath = path.join(jsonFolderPath, `${encodedUrl}.json`);
-    fs.writeFileSync(jsonFilePath, jsonData);
 }
 
 async function shouldChangeIP(page) {
@@ -119,7 +119,7 @@ async function crawl() {
 
     const browser = await puppeteer.launch({
         args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-        headless: true
+        headless: 'new' //new for "true mode" and false for "debug mode (Browser open))"
     });
 
     const page = await browser.newPage();
@@ -142,22 +142,30 @@ async function crawl() {
     log('Crawling started.');
     for await (const line of rl) {
         const url = line.trim();
-        try {
-            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }).catch((error) => {
+        const maxRetryCount = 3; // Максимальное количество попыток загрузки страницы после смены IP
+
+        let retryCount = 0;
+        while (retryCount < maxRetryCount) {
+            try {
+                await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+                if (await shouldChangeIP(page)) {
+                    retryCount++;
+                    log(`Retrying (${retryCount}/${maxRetryCount}) after changing IP.`);
+                    continue; // Перезагрузка страницы после смены IP
+                }
+                await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true);
+                log(`Successfully processed ${url}`);
+                break; // Выход из цикла после успешной обработки страницы
+            } catch (error) {
                 log(`Error processing ${url}: ${error.message}`);
-             });
-            if (await shouldChangeIP(page)) continue;
-            await extractData(page, jsonFolderPath, pdfFolderPath, url, false);
-            log(`Successfully processed ${url}`);
-        } catch (error) {
-            if (error instanceof TimeoutError) {
-                log(`TimeoutError: ${url}`);
-                continue;
-                // TODO ОБРАБОТКА ОШИБКИ
-            } else {
-                log(`Error processing ${url}: ${error.message}`);
-                continue;
+                retryCount++;
+                log(`Retrying (${retryCount}/${maxRetryCount}) after an error.`);
             }
+        }
+
+        if (retryCount === maxRetryCount) {
+            log(`Failed to process ${url} after ${maxRetryCount} retries.`);
+            // Обработка ситуации, когда не удается обработать страницу после нескольких попыток
         }
     }
 
