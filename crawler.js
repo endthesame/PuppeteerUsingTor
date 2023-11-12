@@ -8,10 +8,12 @@ const { downloadFile } = require('./download-utils');
 const readline = require('readline');
 const log = require('./logger');
 const crypto = require('crypto');
+const https = require('https');
+const axios = require('axios');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaContent = (selectors) => {
@@ -56,7 +58,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
-    if (downloadPDF) {
+    if (downloadPDFmark) {
         const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
         pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*article\/.*\/pdf.*/));
         pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
@@ -161,7 +163,7 @@ async function crawl() {
                 }
                 // Проверка, что основной документ полностью загружен
                 await page.waitForSelector('body');
-                await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true);
+                await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true);
                 log(`Successfully processed ${url}`);
                 break; // Выход из цикла после успешной обработки страницы
             } catch (error) {
@@ -183,17 +185,48 @@ async function crawl() {
 
     await browser.close();
     log('Crawling finished.');
-    //await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
+    await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
+}
+
+async function downloadPDF(pdfLink, pdfSavePath) {
+    const proxyUrl = 'http://127.0.0.1:8118';
+    const axiosInstance = axios.create({
+        proxy: false,  // Отключаем автоматическую обработку прокси Axios
+    });
+
+    const response = await axiosInstance({
+        method: 'get',
+        url: pdfLink,
+        responseType: 'stream',
+        proxy: {
+            protocol: 'http',
+            host: '127.0.0.1',
+            port: 8118
+        }
+    });
+
+    const writer = fs.createWriteStream(pdfSavePath);
+
+    return new Promise((resolve, reject) => {
+        response.data.pipe(writer);
+
+        let error = null;
+        writer.on('error', (err) => {
+            error = err;
+            writer.close();
+            reject(err);
+        });
+
+        writer.on('close', () => {
+            if (!error) {
+                console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+                resolve();
+            }
+        });
+    });
 }
 
 async function downloadPDFs(linksFilePath, pdfFolderPath) {
-    const browser = await puppeteer.launch({
-        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
-    });
-
-    const page = await browser.newPage();
-
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     for (const link of links) {
@@ -205,17 +238,52 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
 
-        await page.goto(pdfLink, { waitUntil: 'networkidle0', timeout: 30000 });
-
-        await page.pdf({
-            path: pdfSavePath,
-            format: 'A4',
-        });
-
-        console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+        try {
+            await downloadPDF(pdfLink, pdfSavePath);
+            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+        } catch (error) {
+            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
+        }
     }
-    await browser.close();
 }
+
+// async function downloadPDFs(linksFilePath, pdfFolderPath) {
+//     const browser = await puppeteer.launch({
+//         args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
+//         headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+//     });
+
+//     const page = await browser.newPage();
+
+//     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
+
+//     for (const link of links) {
+//         if (!link.trim()) {
+//             continue;
+//         }
+
+//         const [pdfLink, pdfFileName] = link.trim().split(' ');
+
+//         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+
+//         await page.goto(pdfLink, { waitUntil: 'networkidle2', timeout: 30000 });
+
+//         // await page._client.send('Page.setDownloadBehavior', {
+//         //     behavior: 'allow',
+//         //     downloadPath: pdfSavePath 
+//         // });
+//         https.get(pdfLink, res => {
+//             const stream = fs.createWriteStream(pdfSavePath);
+//             res.pipe(stream);
+//             stream.on('finish', () => {
+//                 stream.close();
+//             })
+//         })
+
+//         console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+//     }
+//     await browser.close();
+// }
 
 crawl().catch((error) => {
     log(`Error during crawling: ${error.message}`);
