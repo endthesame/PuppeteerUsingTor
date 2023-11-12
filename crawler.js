@@ -107,65 +107,91 @@ async function getCurrentIP() {
     });
 }
 
-async function crawl(url, browser, jsonFolderPath, pdfFolderPath, siteFolderPath) {
-    let page;
-    const maxRetryCount = 3;
-
+async function crawl() {
     try {
         await changeTorIp();
-        await getCurrentIP();
+    } catch (error) {
+        log(`Error changing IP address: ${error.message}`);
+        //return;
+    }
 
-        const rl = readline.createInterface({
-            input: fs.createReadStream(url) // Путь к файлу с ссылками
-        });
+    // Получить текущий IP-адрес
+    await getCurrentIP();
 
-        for await (const line of rl) {
-            const url = line.trim();
-            let retryCount = 0;
+    const browser = await puppeteer.launch({
+        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
+        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+    });
 
-            while (retryCount < maxRetryCount) {
-                try {
-                    if (page) {
-                        await page.close();
-                    }
-                    page = await browser.newPage();
-                    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    //const page = await browser.newPage();
 
-                    if (await shouldChangeIP(page)) {
-                        log(`Retrying (${retryCount}/${maxRetryCount}) after changing IP.`);
-                        continue;
-                    }
+    const hostNameForDir = process.argv[2] || "default_host_name";
+    const outputFolderPath = path.join(__dirname, 'output');
+    const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
+    const jsonFolderPath = path.join(siteFolderPath, 'jsons');
+    const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
 
-                    await page.waitForSelector('body');
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, true);
-                    log(`Successfully processed ${url}`);
-                    break;
-                } catch (error) {
-                    log(`Error processing ${url}: ${error.message}`);
-                    retryCount++;
-                    log(`Retrying (${retryCount}/${maxRetryCount}) after an error.`);
-                } finally {
-                    if (page && !page.isClosed()) {
-                        await page.close();
-                    }
+    // Создать структуру папок, если они не существуют
+    if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
+    if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
+    if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
+    if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
+
+    const rl = readline.createInterface({
+        input: fs.createReadStream('your_links_file.txt') // Путь к файлу с ссылками
+    });
+    log('Crawling started.');
+    for await (const line of rl) {
+        const url = line.trim();
+        const maxRetryCount = 3; // Максимальное количество попыток загрузки страницы после смены IP
+
+        let retryCount = 0;
+        let page;
+        while (retryCount < maxRetryCount) {
+            try {
+                if (page) {
+                    await page.close(); // Закрываем предыдущую вкладку
+                }
+                page = await browser.newPage();
+                await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+                if (await shouldChangeIP(page)) {
+                    log(`Retrying (${retryCount}/${maxRetryCount}) after changing IP.`);
+                    // await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+                    continue; // Перезагрузка страницы после смены IP
+                }
+                // Проверка, что основной документ полностью загружен
+                await page.waitForSelector('body');
+                await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true);
+                log(`Successfully processed ${url}`);
+                break; // Выход из цикла после успешной обработки страницы
+            } catch (error) {
+                log(`Error processing ${url}: ${error.message}`);
+                retryCount++;
+                log(`Retrying (${retryCount}/${maxRetryCount}) after an error.`);
+            } finally {
+                if (page && !page.isClosed()) {
+                    await page.close(); // Закрываем текущую вкладку перед переходом к следующей итерации
                 }
             }
-
-            if (retryCount === maxRetryCount) {
-                log(`Failed to process ${url} after ${maxRetryCount} retries.`);
-            }
         }
-    } catch (error) {
-        log(`Error during crawling: ${error.message}`);
-        console.error(error);
-    } finally {
-        if (page && !page.isClosed()) {
-            await page.close();
+
+        if (retryCount === maxRetryCount) {
+            log(`Failed to process ${url} after ${maxRetryCount} retries.`);
+            // Обработка ситуации, когда не удается обработать страницу после нескольких попыток
         }
     }
+
+    await browser.close();
+    log('Crawling finished.');
+    //await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
 }
 
-async function downloadPDFs(linksFilePath, pdfFolderPath, browser) {
+async function downloadPDFs(linksFilePath, pdfFolderPath) {
+    const browser = await puppeteer.launch({
+        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
+        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+    });
+
     const page = await browser.newPage();
 
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
@@ -188,43 +214,10 @@ async function downloadPDFs(linksFilePath, pdfFolderPath, browser) {
 
         console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
     }
-
-    await page.close();
-}
-
-async function main() {
-    try {
-        await changeTorIp();
-    } catch (error) {
-        log(`Error changing IP address: ${error.message}`);
-        return;
-    }
-
-    await getCurrentIP();
-
-    const browser = await puppeteer.launch({
-        args: ['--proxy-server=http://localhost:8118'],
-        headless: false
-    });
-
-    const hostNameForDir = process.argv[2] || "default_host_name";
-    const outputFolderPath = path.join(__dirname, 'output');
-    const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
-    const jsonFolderPath = path.join(siteFolderPath, 'jsons');
-    const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-
-    if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
-    if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
-    if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
-    if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
-
-    await crawl('your_links_file.txt', browser, jsonFolderPath, pdfFolderPath, siteFolderPath);
-    await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath, browser);
-
     await browser.close();
 }
 
-main().catch((error) => {
-    log(`Error during execution: ${error.message}`);
+crawl().catch((error) => {
+    log(`Error during crawling: ${error.message}`);
     console.error(error);
 });
