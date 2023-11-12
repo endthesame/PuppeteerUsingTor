@@ -15,17 +15,20 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaContent = (selectors) => {
+            const contents = [];
             for (const selector of selectors) {
-                const element = document.querySelector(selector);
-                if (element) {
-                    return element.content;
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                    const elementContents = Array.from(elements).map(element => element.content);
+                    contents.push(elementContents.join(', '));
                 }
             }
-            return '';
+            return contents.join(', ');
         };
     
         const title = getMetaContent(['meta[name="citation_title"]']);
         const date = getMetaContent(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]']);
+        const authors = getMetaContent(['meta[name="citation_author"]']);
         const mf_doi = getMetaContent(['meta[name="citation_doi"]']);
         const mf_journal = getMetaContent(['meta[name="citation_journal_title"]']);
         const mf_issn = getMetaContent(['meta[name="citation_issn"]']);
@@ -36,7 +39,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const first_page = getMetaContent(['meta[name="citation_firstpage"]']);
         const language = getMetaContent(['meta[name="citation_language"]']);
     
-        const metadata = { "title": title, "date": date, "mf_doi": mf_doi, "mf_journal": mf_journal, "mf_issn": mf_issn, "publisher": publisher, "orcid": orcid, "volume": volume, "issue": issue, "first_page": first_page, "language": language };
+        const metadata = { "title": title, "date": date, "authors": authors, "mf_doi": mf_doi, "mf_journal": mf_journal, "mf_issn": mf_issn, "publisher": publisher, "orcid": orcid, "volume": volume, "issue": issue, "first_page": first_page, "language": language };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -77,6 +80,7 @@ async function shouldChangeIP(page) {
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
         log('IP address changed successfully.');
+        await getCurrentIP();
         return true;
     }
     return false;
@@ -112,17 +116,14 @@ async function crawl() {
     }
 
     // Получить текущий IP-адрес
-    const currentIP = await getCurrentIP();
-
-    console.log('Текущий IP-адрес:', currentIP);
-
+    await getCurrentIP();
 
     const browser = await puppeteer.launch({
         args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-        headless: 'new' //new for "true mode" and false for "debug mode (Browser open))"
+        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
     });
 
-    const page = await browser.newPage();
+    //const page = await browser.newPage();
 
     const hostNameForDir = process.argv[2] || "default_host_name";
     const outputFolderPath = path.join(__dirname, 'output');
@@ -145,14 +146,21 @@ async function crawl() {
         const maxRetryCount = 3; // Максимальное количество попыток загрузки страницы после смены IP
 
         let retryCount = 0;
+        let page;
         while (retryCount < maxRetryCount) {
             try {
+                if (page) {
+                    await page.close(); // Закрываем предыдущую вкладку
+                }
+                page = await browser.newPage();
                 await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
                 if (await shouldChangeIP(page)) {
-                    retryCount++;
                     log(`Retrying (${retryCount}/${maxRetryCount}) after changing IP.`);
+                    // await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
                     continue; // Перезагрузка страницы после смены IP
                 }
+                // Проверка, что основной документ полностью загружен
+                await page.waitForSelector('body');
                 await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDF = true);
                 log(`Successfully processed ${url}`);
                 break; // Выход из цикла после успешной обработки страницы
@@ -160,6 +168,10 @@ async function crawl() {
                 log(`Error processing ${url}: ${error.message}`);
                 retryCount++;
                 log(`Retrying (${retryCount}/${maxRetryCount}) after an error.`);
+            } finally {
+                if (page && !page.isClosed()) {
+                    await page.close(); // Закрываем текущую вкладку перед переходом к следующей итерации
+                }
             }
         }
 
@@ -171,6 +183,38 @@ async function crawl() {
 
     await browser.close();
     log('Crawling finished.');
+    //await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
+}
+
+async function downloadPDFs(linksFilePath, pdfFolderPath) {
+    const browser = await puppeteer.launch({
+        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
+        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+    });
+
+    const page = await browser.newPage();
+
+    const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
+
+    for (const link of links) {
+        if (!link.trim()) {
+            continue;
+        }
+
+        const [pdfLink, pdfFileName] = link.trim().split(' ');
+
+        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+
+        await page.goto(pdfLink, { waitUntil: 'networkidle0', timeout: 30000 });
+
+        await page.pdf({
+            path: pdfSavePath,
+            format: 'A4',
+        });
+
+        console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+    }
+    await browser.close();
 }
 
 crawl().catch((error) => {
