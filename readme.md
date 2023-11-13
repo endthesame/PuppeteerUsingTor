@@ -38,6 +38,10 @@ pip install -r requirements.txt
 ```
 
 ### Установите nodeJS
+```
+sudo apt install npm
+sudo n 18
+```
 
 ### Установите NodeJS Зависимости
 npm install
