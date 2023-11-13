@@ -1,46 +1,39 @@
-// const net = require('net');
-
-// function changeTorIp() {
-//     return new Promise((resolve, reject) => {
-//         const socket = new net.Socket();
-
-//         socket.connect(9051, '127.0.0.1', () => {
-//             //socket.write('AUTHENTICATE "your_tor_password"\r\n');
-//             socket.write('SIGNAL NEWNYM\r\n');
-//             socket.write('QUIT\r\n');
-//         });
-
-//         socket.on('data', (data) => {
-//             if (data.toString().includes('250 OK')) {
-//                 resolve();
-//             } else {
-//                 reject(new Error('Failed to change IP'));
-//             }
-//         });
-
-//         socket.on('error', reject);
-//     });
-// }
-
-// module.exports = changeTorIp;
-
 const { exec } = require('child_process');
+const puppeteer = require('puppeteer-extra');
+const log = require('./logger');
+const { getCurrentIP } = require('./utils');
 
 async function changeTorIp() {
     return new Promise((resolve, reject) => {
         exec('python change_tor_ip.py', (error, stdout, stderr) => {
             if (error) {
-                console.error(`Error: ${error.message}`);
+                log(`Error: ${error.message}`);
                 reject(error);
             }
             if (stderr) {
-                console.error(`Error: ${stderr}`);
+                log(`Error: ${stderr}`);
                 reject(stderr);
             }
-            console.log(`Tor IP changed: ${stdout}`);
             resolve(stdout);
         });
     });
 }
 
- module.exports = changeTorIp;
+async function shouldChangeIP(page) {
+    const status = await page.evaluate(() => {
+        return document.readyState; // Используйте любые данные или свойства, которые позволяют вам определить состояние страницы.
+    });
+    const currentURL = page.url();
+
+    // Условие для смены IP-адреса, включая статус код и паттерн в URL
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
+        await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
+        await changeTorIp();
+        log('IP address changed successfully.');
+        await getCurrentIP();
+        return true;
+    }
+    return false;
+}
+
+ module.exports = {changeTorIp, shouldChangeIP};

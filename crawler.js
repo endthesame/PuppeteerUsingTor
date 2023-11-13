@@ -3,13 +3,14 @@ const { TimeoutError } = require('puppeteer');
 const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
-const changeTorIp = require('./tor-config');
-const { downloadFile } = require('./download-utils');
+const {changeTorIp, shouldChangeIP} = require('./tor-config');
+const { downloadPDF } = require('./download-utils');
 const readline = require('readline');
 const log = require('./logger');
 const crypto = require('crypto');
 const https = require('https');
 const axios = require('axios');
+const { getCurrentIP } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
@@ -71,44 +72,6 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function shouldChangeIP(page) {
-    const status = await page.evaluate(() => {
-        return document.readyState; // Используйте любые данные или свойства, которые позволяют вам определить состояние страницы.
-    });
-    const currentURL = page.url();
-
-    // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
-        await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
-        await changeTorIp();
-        log('IP address changed successfully.');
-        await getCurrentIP();
-        return true;
-    }
-    return false;
-}
-
-async function getCurrentIP() {
-    return new Promise((resolve, reject) => {
-        const request = require('request');
-
-        const options = {
-            url: 'https://api.ipify.org',
-            proxy: 'http://127.0.0.1:8118', // Указание прокси
-        };
-
-        request(options, (error, response, body) => {
-            if (!error && response.statusCode === 200) {
-                log(`Current IP address: ${body}`);
-                resolve(body);
-            } else {
-                log(`Error getting current IP address. Error: ${error.message}`);
-                reject(error);
-            }
-        });
-    });
-}
-
 async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath) {
     mainLoop: while (true) {
         let browser;
@@ -120,7 +83,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=http://localhost:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -177,6 +140,27 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
     log('Crawling finished.');
 }
 
+async function downloadPDFs(linksFilePath, pdfFolderPath) {
+    const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
+
+    for (const link of links) {
+        if (!link.trim()) {
+            continue;
+        }
+
+        const [pdfLink, pdfFileName] = link.trim().split(' ');
+
+        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+
+        try {
+            await downloadPDF(pdfLink, pdfSavePath);
+            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+        } catch (error) {
+            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
+        }
+    }
+}
+
 async function main() {
     try {
         const hostNameForDir = process.argv[2] || "default_host_name";
@@ -194,8 +178,11 @@ async function main() {
 
         // Копировать файл с ссылками
         fs.copyFileSync('your_links_file.txt', linksFilePath);
-
+        // Запуск краулинга
         await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath);
+        // Запуск скачивания PDF
+        //await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
+        
     } catch (error) {
         log(`Error during setup: ${error.message}`);
     }
