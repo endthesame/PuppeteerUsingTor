@@ -109,183 +109,99 @@ async function getCurrentIP() {
     });
 }
 
-async function crawl() {
-    try {
-        await changeTorIp();
-    } catch (error) {
-        log(`Error changing IP address: ${error.message}`);
-        //return;
-    }
-
-    // Получить текущий IP-адрес
-    await getCurrentIP();
-
-    const browser = await puppeteer.launch({
-        args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
-    });
-
-    //const page = await browser.newPage();
-
-    const hostNameForDir = process.argv[2] || "default_host_name";
-    const outputFolderPath = path.join(__dirname, 'output');
-    const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
-    const jsonFolderPath = path.join(siteFolderPath, 'jsons');
-    const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-
-    // Создать структуру папок, если они не существуют
-    if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
-    if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
-    if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
-    if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
-
-    const rl = readline.createInterface({
-        input: fs.createReadStream('your_links_file.txt') // Путь к файлу с ссылками
-    });
-    log('Crawling started.');
-    for await (const line of rl) {
-        const url = line.trim();
-        const maxRetryCount = 3; // Максимальное количество попыток загрузки страницы после смены IP
-
-        let retryCount = 0;
+async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath) {
+    mainLoop: while (true) {
+        let browser;
         let page;
-        while (retryCount < maxRetryCount) {
-            try {
-                if (page) {
-                    await page.close(); // Закрываем предыдущую вкладку
-                }
-                page = await browser.newPage();
-                await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-                if (await shouldChangeIP(page)) {
-                    log(`Retrying (${retryCount}/${maxRetryCount}) after changing IP.`);
-                    // await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-                    continue; // Перезагрузка страницы после смены IP
-                }
-                // Проверка, что основной документ полностью загружен
-                await page.waitForSelector('body');
-                await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true);
-                log(`Successfully processed ${url}`);
-                break; // Выход из цикла после успешной обработки страницы
-            } catch (error) {
-                log(`Error processing ${url}: ${error.message}`);
-                retryCount++;
-                log(`Retrying (${retryCount}/${maxRetryCount}) after an error.`);
-            } finally {
-                if (page && !page.isClosed()) {
-                    await page.close(); // Закрываем текущую вкладку перед переходом к следующей итерации
-                }
-            }
-        }
-
-        if (retryCount === maxRetryCount) {
-            log(`Failed to process ${url} after ${maxRetryCount} retries.`);
-            // Обработка ситуации, когда не удается обработать страницу после нескольких попыток
-        }
-    }
-
-    await browser.close();
-    log('Crawling finished.');
-    await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
-}
-
-async function downloadPDF(pdfLink, pdfSavePath) {
-    const proxyUrl = 'http://127.0.0.1:8118';
-    const axiosInstance = axios.create({
-        proxy: false,  // Отключаем автоматическую обработку прокси Axios
-    });
-
-    const response = await axiosInstance({
-        method: 'get',
-        url: pdfLink,
-        responseType: 'stream',
-        proxy: {
-            protocol: 'http',
-            host: '127.0.0.1',
-            port: 8118
-        }
-    });
-
-    const writer = fs.createWriteStream(pdfSavePath);
-
-    return new Promise((resolve, reject) => {
-        response.data.pipe(writer);
-
-        let error = null;
-        writer.on('error', (err) => {
-            error = err;
-            writer.close();
-            reject(err);
-        });
-
-        writer.on('close', () => {
-            if (!error) {
-                console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
-                resolve();
-            }
-        });
-    });
-}
-
-async function downloadPDFs(linksFilePath, pdfFolderPath) {
-    const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
-
-    for (const link of links) {
-        if (!link.trim()) {
-            continue;
-        }
-
-        const [pdfLink, pdfFileName] = link.trim().split(' ');
-
-        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
 
         try {
-            await downloadPDF(pdfLink, pdfSavePath);
-            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+            await changeTorIp();
+            await getCurrentIP();
+
+            browser = await puppeteer.launch({
+                args: ['--proxy-server=http://localhost:8118'],
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+            });
+
+            page = await browser.newPage();
+
+            // Проверка, есть ли еще ссылки для краулинга
+            let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
+
+            while (remainingLinks.length > 0) {
+                const url = remainingLinks[0].trim();
+
+                try {
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+                    if (await shouldChangeIP(page)) {
+                        log(`Retrying after changing IP.`);
+                        // Продолжаем внутренний цикл с новым браузером
+                        continue mainLoop;
+                    }
+
+                    // Проверка, что основной документ полностью загружен
+                    await page.waitForSelector('body');
+                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true);
+                    log(`Successfully processed ${url}`);
+
+                    // Убираем обработанную ссылку из файла
+                    remainingLinks = remainingLinks.slice(1);
+                    // Асинхронная запись в файл
+                    fs.writeFileSync(linksFilePath, remainingLinks.join('\n'), 'utf-8', (err) => {
+                        if (err) {
+                            log(`Error writing to file: ${err.message}`);
+                        }
+                    });
+                } catch (error) {
+                    log(`Error processing ${url}: ${error.message}`);
+                    // Продолжаем внутренний цикл при ошибке
+                    continue;
+                }
+            }
+
+            if (remainingLinks.length === 0) {
+                log('No remaining links to crawl. Exiting.');
+                break mainLoop; // Выход из внешнего цикла, если нет оставшихся ссылок
+            }
         } catch (error) {
-            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
+            log(`Error during crawling: ${error.message}`);
+            await changeTorIp(); // Меняем IP при ошибке
+        } finally {
+            if (browser) {
+                await browser.close(); // Закрываем текущий браузер
+            }
         }
+    }
+
+    log('Crawling finished.');
+}
+
+async function main() {
+    try {
+        const hostNameForDir = process.argv[2] || "default_host_name";
+        const outputFolderPath = path.join(__dirname, 'output');
+        const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
+        const jsonFolderPath = path.join(siteFolderPath, 'jsons');
+        const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
+        const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
+
+        // Создать структуру папок, если они не существуют
+        if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
+        if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
+        if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
+        if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
+
+        // Копировать файл с ссылками
+        fs.copyFileSync('your_links_file.txt', linksFilePath);
+
+        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath);
+    } catch (error) {
+        log(`Error during setup: ${error.message}`);
     }
 }
 
-// async function downloadPDFs(linksFilePath, pdfFolderPath) {
-//     const browser = await puppeteer.launch({
-//         args: ['--proxy-server=http://localhost:8118'], // Прокси через Privoxy      
-//         headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
-//     });
-
-//     const page = await browser.newPage();
-
-//     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
-
-//     for (const link of links) {
-//         if (!link.trim()) {
-//             continue;
-//         }
-
-//         const [pdfLink, pdfFileName] = link.trim().split(' ');
-
-//         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
-
-//         await page.goto(pdfLink, { waitUntil: 'networkidle2', timeout: 30000 });
-
-//         // await page._client.send('Page.setDownloadBehavior', {
-//         //     behavior: 'allow',
-//         //     downloadPath: pdfSavePath 
-//         // });
-//         https.get(pdfLink, res => {
-//             const stream = fs.createWriteStream(pdfSavePath);
-//             res.pipe(stream);
-//             stream.on('finish', () => {
-//                 stream.close();
-//             })
-//         })
-
-//         console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
-//     }
-//     await browser.close();
-// }
-
-crawl().catch((error) => {
+main().catch((error) => {
     log(`Error during crawling: ${error.message}`);
     console.error(error);
 });
