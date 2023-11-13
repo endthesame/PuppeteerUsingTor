@@ -22,10 +22,10 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath);
+        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true);
         
         // Запуск скачивания PDF
-        //await downloadPDFs(linksFilePath, pdfFolderPath);
+        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }

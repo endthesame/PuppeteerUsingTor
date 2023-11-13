@@ -56,8 +56,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     fs.writeFileSync(jsonFilePath, jsonData);
 
     if (downloadPDFmark) {
-        const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
-        pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*article\/.*\/pdf.*/));
+
+        // const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
+        // pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*content\/articlepdf.*/));
+        pdfLinksToDownload = await page.evaluate(() => {
+            const pdfLink = document.querySelectorAll('meta[name="citation_pdf_url"]');
+            const pdfLinks = Array.from(pdfLink).map(pdfLink => pdfLink.content);
+            return pdfLinks;
+        });
         pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
         for (const pdfLink of pdfLinksToDownload) {
@@ -79,7 +85,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=http://localhost:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
