@@ -27,6 +27,7 @@ async function shouldChangeIP(page) {
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
     if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
+        log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
         log('IP address changed successfully.');

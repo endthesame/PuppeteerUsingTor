@@ -4,12 +4,8 @@ const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 const {changeTorIp, shouldChangeIP} = require('./tor-config');
-const { downloadPDF } = require('./download-utils');
-const readline = require('readline');
 const log = require('./logger');
 const crypto = require('crypto');
-const https = require('https');
-const axios = require('axios');
 const { getCurrentIP } = require('./utils');
 
 puppeteer.use(StealhPlugin());
@@ -140,55 +136,4 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
     log('Crawling finished.');
 }
 
-async function downloadPDFs(linksFilePath, pdfFolderPath) {
-    const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
-
-    for (const link of links) {
-        if (!link.trim()) {
-            continue;
-        }
-
-        const [pdfLink, pdfFileName] = link.trim().split(' ');
-
-        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
-
-        try {
-            await downloadPDF(pdfLink, pdfSavePath);
-            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
-        } catch (error) {
-            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
-        }
-    }
-}
-
-async function main() {
-    try {
-        const hostNameForDir = process.argv[2] || "default_host_name";
-        const outputFolderPath = path.join(__dirname, 'output');
-        const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
-        const jsonFolderPath = path.join(siteFolderPath, 'jsons');
-        const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-        const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
-
-        // Создать структуру папок, если они не существуют
-        if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
-        if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
-        if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
-        if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
-
-        // Копировать файл с ссылками
-        fs.copyFileSync('your_links_file.txt', linksFilePath);
-        // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath);
-        // Запуск скачивания PDF
-        //await downloadPDFs(path.join(siteFolderPath, 'Links.txt'), pdfFolderPath);
-        
-    } catch (error) {
-        log(`Error during setup: ${error.message}`);
-    }
-}
-
-main().catch((error) => {
-    log(`Error during crawling: ${error.message}`);
-    console.error(error);
-});
+module.exports = { crawl, extractData };

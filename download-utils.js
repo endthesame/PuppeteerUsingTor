@@ -1,6 +1,30 @@
-const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const puppeteer = require('puppeteer-extra');
+const StealhPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealhPlugin());
+
+async function downloadPDFs(linksFilePath, pdfFolderPath) {
+    const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
+
+    for (const link of links) {
+        if (!link.trim()) {
+            continue;
+        }
+
+        const [pdfLink, pdfFileName] = link.trim().split(' ');
+
+        const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+
+        try {
+            await downloadPDF(pdfLink, pdfSavePath);
+            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+        } catch (error) {
+            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
+        }
+    }
+}
 
 async function downloadPDF(pdfLink, pdfSavePath) {
     const browser = await puppeteer.launch({
@@ -27,4 +51,4 @@ async function downloadPDF(pdfLink, pdfSavePath) {
     await browser.close();
 }
 
-module.exports = { downloadPDF };
+module.exports = {downloadPDFs, downloadPDF };
