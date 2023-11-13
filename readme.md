@@ -52,5 +52,5 @@ npm install
 
 ```
 cd PuppeteerUsingTor
-node crawler.js <название_ресураса>
+node main.js <название_ресураса>
 ```
