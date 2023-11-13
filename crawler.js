@@ -13,37 +13,43 @@ puppeteer.use(StealhPlugin());
 async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
-        const getMetaContent = (selectors) => {
-            const contents = [];
+        const getMetaAttributes = (selectors, attribute, childSelector) => {
+            let values = [];
             for (const selector of selectors) {
                 const elements = document.querySelectorAll(selector);
                 if (elements.length > 0) {
-                    const elementContents = Array.from(elements).map(element => element.content);
-                    contents.push(elementContents.join(', '));
+                    values = Array.from(elements).map(element => {
+                        const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                        return targetElement.getAttribute(attribute);
+                    });
+                    break; // Прерываем цикл после первого успешного поиска
                 }
             }
-            return contents.join(', ');
+            return values.join('; ');
         };
     
-        const title = getMetaContent(['meta[name="citation_title"]']);
-        const date = getMetaContent(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]']);
-        const authors = getMetaContent(['meta[name="citation_author"]']);
-        const mf_doi = getMetaContent(['meta[name="citation_doi"]']);
-        const mf_journal = getMetaContent(['meta[name="citation_journal_title"]']);
-        const mf_issn = getMetaContent(['meta[name="citation_issn"]']);
-        const publisher = getMetaContent(['meta[name="citation_publisher"]']);
-        const orcid = getMetaContent(['meta[name="citation_author_orcid"]']);
-        const volume = getMetaContent(['meta[name="citation_volume"]']);
-        const issue = getMetaContent(['meta[name="citation_issue"]']);
-        const first_page = getMetaContent(['meta[name="citation_firstpage"]']);
-        const language = getMetaContent(['meta[name="citation_language"]']);
+        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
+        const date = getMetaAttributes(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]'], 'content');
+        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
+        const publisher = getMetaAttributes(['meta[name="DC.publisher"]'], 'content');
+        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
+        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
+        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
+        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
+        const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
+
+        const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "title": title, "date": date, "authors": authors, "mf_doi": mf_doi, "mf_journal": mf_journal, "mf_issn": mf_issn, "publisher": publisher, "orcid": orcid, "volume": volume, "issue": issue, "first_page": first_page, "language": language };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
-
+    meta_data["217"] = url; //mf_url
     const data = meta_data;
 
     var pdfLinksToDownload = [];
@@ -59,17 +65,29 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         // const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
         // pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*content\/articlepdf.*/));
-        pdfLinksToDownload = await page.evaluate(() => {
-            const pdfLink = document.querySelectorAll('meta[name="citation_pdf_url"]');
-            const pdfLinks = Array.from(pdfLink).map(pdfLink => pdfLink.content);
-            return pdfLinks;
-        });
-        pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
-        for (const pdfLink of pdfLinksToDownload) {
-            const pdfFileName = baseFileName + '.pdf';
-            const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
-            fs.appendFileSync(linksTxtPath, `${pdfLink} ${pdfFileName}\n`);
+        isOpenAccess = await page.evaluate(() => {
+            // Проверка наличия элемента с классом .c__16
+            const hasClassC16 = document.querySelector('.c__16');
+            if (hasClassC16) {
+                return true;
+            } else { 
+                return false;
+            }
+        });
+        if (isOpenAccess) {
+            pdfLinksToDownload = await page.evaluate(() => {
+                const pdfLink = document.querySelectorAll('meta[name="citation_pdf_url"]');
+                const pdfLinks = Array.from(pdfLink).map(pdfLink => pdfLink.content);
+                return pdfLinks;
+            });
+            pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
+
+            for (const pdfLink of pdfLinksToDownload) {
+                const pdfFileName = baseFileName + '.pdf';
+                const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
+                fs.appendFileSync(linksTxtPath, `${pdfLink} ${pdfFileName}\n`);
+            }
         }
     }
 }
@@ -85,7 +103,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=http://localhost:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
