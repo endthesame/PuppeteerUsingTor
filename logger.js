@@ -7,7 +7,7 @@ const logsFolderPath = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsFolderPath)) fs.mkdirSync(logsFolderPath);
 
 // Создать файл для логов с текущим временем в названии
-const logFileName = `log_${new Date().toLocaleString().replace(/:/g, '-').replace(", ", "_")}.log`;
+const logFileName = `log_${new Date().toLocaleString().replace(/[/:,\s]/g, '_')}.log`;
 const logFilePath = path.join(logsFolderPath, logFileName);
 
 // Функция для логирования

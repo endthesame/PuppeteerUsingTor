@@ -46,7 +46,7 @@ sudo n 18
 ```
 
 ### Установите NodeJS Зависимости
-npm install
+npm ci
 
 ## Запуск
 
