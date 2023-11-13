@@ -1,5 +1,7 @@
 # CrawlingUsingTor
 
+## Установка
+
 ### Установите Tor
 ```
 sudo apt-get install tor
@@ -37,7 +39,7 @@ sudo service privoxy start
 pip install -r requirements.txt
 ```
 
-### Установите nodeJS
+### Установите nodeJS (LINUX)
 ```
 sudo apt install npm
 sudo n 18
@@ -45,3 +47,10 @@ sudo n 18
 
 ### Установите NodeJS Зависимости
 npm install
+
+## Запуск
+
+```
+cd PuppeteerUsingTor
+node crawler.js <название_ресураса>
+```
