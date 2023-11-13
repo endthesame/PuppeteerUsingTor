@@ -1,9 +1,8 @@
 const path = require('path');
 const fs = require('fs');
-const puppeteer = require('puppeteer-extra');
-const StealhPlugin = require('puppeteer-extra-plugin-stealth');
-
-puppeteer.use(StealhPlugin());
+const http = require('http');
+const https = require('https');
+const {changeTorIp} = require('./tor-config');
 
 async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
@@ -22,33 +21,54 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
         } catch (error) {
             console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
+            await new Promise(resolve => setTimeout(resolve, 15000));
+            changeTorIp();
         }
     }
 }
 
-async function downloadPDF(pdfLink, pdfSavePath) {
-    const browser = await puppeteer.launch({
-        args: ['--proxy-server=http://localhost:8118'],
-        headless: false
+function downloadPDF(pdfLink, pdfSavePath) {
+    return new Promise((resolve, reject) => {
+        const proxyOptions = {
+            host: 'http://127.0.0.1:8118',
+            //port: 8118,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9',
+            },
+        };
+
+        const downloader = pdfLink.startsWith('https') ? https : http;
+
+        const request = downloader.get(pdfLink, proxyOptions, (response) => {
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location.includes('perfdrive')) {
+                reject(new Error('Redirecting to a perfdrive URL. Handle accordingly.'));
+                return;
+            }
+            if (response.statusCode >= 400) {
+                reject(new Error(`Error: HTTP status code ${response.statusCode}`));
+                return;
+            }
+
+            const fileStream = fs.createWriteStream(pdfSavePath);
+
+            response.pipe(fileStream);
+
+            fileStream.on('finish', () => {
+                fileStream.close();
+                resolve();
+            });
+        }).on('error', (err) => {
+            fs.unlink(pdfSavePath, () => {});
+            reject(new Error(`Error downloading file: ${err.message}`));
+        });
+
+        request.on('socket', (socket) => {
+            // Настройка прокси
+            // socket.on('connect', () => {
+            //   socket.write(`CONNECT ${proxyOptions.host}:${proxyOptions.port} HTTP/1.1\r\n\r\n`);
+            // });
+        });
     });
-
-    const page = await browser.newPage();
-
-    await page._client().send('Page.setDownloadBehavior', {
-        behavior: 'allow',
-        downloadPath: path.dirname(pdfSavePath)
-    });
-
-    await page.goto(pdfLink, { waitUntil: 'networkidle2' });
-
-    // В данном контексте необходимо взаимодействовать с элементами страницы, которые инициируют скачивание PDF.
-    // Например, кликнуть на кнопку "Скачать".
-    await page.click('#download');
-
-    // Ждем, пока завершится загрузка
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
-
-    await browser.close();
 }
 
 module.exports = {downloadPDFs, downloadPDF };
