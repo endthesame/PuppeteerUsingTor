@@ -42,15 +42,29 @@ pip install -r requirements.txt
 ### Установите nodeJS (LINUX)
 ```
 sudo apt install npm
-sudo n 18
+npm install -g n 18
 ```
-
+если установилась версия < 18, то необходимо 
+```
+sudo n 18
+node -v
+```
 ### Установите NodeJS Зависимости
+```
 npm ci
+```
 
 ## Запуск
 
 ```
 cd PuppeteerUsingTor
 node main.js <название_ресураса>
+```
+
+## Ошибки
+
+#### Ошибка error while loading shared libraries: libgbm.so.1
+следует установить следующее:
+```
+sudo apt-get install libgbm1
 ```
