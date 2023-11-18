@@ -31,7 +31,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
+        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
@@ -105,8 +105,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                // args: ['--proxy-server=127.0.0.1:8118'],
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -120,7 +120,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 try {
                     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-                    await page.waitForTimeout(5000);
+                    await page.waitForTimeout(3000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
@@ -130,6 +130,24 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
+
+                    // ТОЛЬКО ДЛЯ ЭТОГО РЕСУРСА - ПРОВЕРКА НА 404 - В КНИГАХ
+                    let isNotFound = false;
+                    const element404 = await page.$('.uk-h1.uk-margin-small');
+                    if (element404) {
+                        isNotFound = await page.evaluate(element => element.textContent.includes('Not found'), element404);
+                    }
+                    if (isNotFound) {
+                        log(`The page ${url} contains "Not found". Skipping extraction.`);
+                        remainingLinks = remainingLinks.slice(1);
+                        fs.writeFileSync(linksFilePath, remainingLinks.join('\n'), 'utf-8', (err) => {
+                            if (err) {
+                                log(`Error writing to file: ${err.message}`);
+                            }
+                        });
+                        continue; // Пропускаем текущую ссылку и переходим к следующей
+                    }
+
                     await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true);
                     log(`Successfully processed ${url}`);
 
