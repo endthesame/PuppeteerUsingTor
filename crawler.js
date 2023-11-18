@@ -25,11 +25,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                     break; // Прерываем цикл после первого успешного поиска
                 }
             }
+            // if (values.length === 0) {
+            //     return "";
+            // }
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]'], 'content');
+        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
+        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
@@ -41,6 +44,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
         const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
+        //keywords
+        //Type
 
         const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
@@ -68,8 +73,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         isOpenAccess = await page.evaluate(() => {
             // Проверка наличия элемента с классом .c__16
-            const hasClassC16 = document.querySelector('.c__16');
-            if (hasClassC16) {
+            const hasClassFreeAccess = document.querySelector('.free-access');
+            const hasClassOpenAccess = document.querySelector('.open-access');
+            const AltOpenAccess = document.querySelector('.icon-availability_open');
+            if (hasClassFreeAccess || hasClassOpenAccess || AltOpenAccess) {
                 return true;
             } else { 
                 return false;
@@ -77,8 +84,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         });
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                const pdfLink = document.querySelectorAll('meta[name="citation_pdf_url"]');
-                const pdfLinks = Array.from(pdfLink).map(pdfLink => pdfLink.content);
+                const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
+                // .filter(a => a.href.match(/.*doi\/pdf\/.*/))
+                .filter(a => a.href.match(/.*article-pdf\/doi\/.*/))
                 return pdfLinks;
             });
             pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
@@ -102,8 +110,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=http://localhost:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                args: ['--proxy-server=http:8.209.114.72:3129'],
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -115,7 +123,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+
+                    await page.waitForTimeout(5000);
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
