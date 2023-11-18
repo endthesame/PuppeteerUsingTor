@@ -6,11 +6,11 @@ const path = require('path');
 const {changeTorIp, shouldChangeIP} = require('./tor-config');
 const log = require('./logger');
 const crypto = require('crypto');
-const { getCurrentIP } = require('./utils');
+const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -67,26 +67,21 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     fs.writeFileSync(jsonFilePath, jsonData);
 
     if (downloadPDFmark) {
-
-        // const pdfLinks = await page.$$eval('a', links => links.map(link => link.href));
-        // pdfLinksToDownload = pdfLinks.filter(link => link.match(/.*content\/articlepdf.*/));
-
-        isOpenAccess = await page.evaluate(() => {
-            // Проверка наличия элемента с классом .c__16
-            const hasClassFreeAccess = document.querySelector('.free-access');
-            const hasClassOpenAccess = document.querySelector('.open-access');
-            const AltOpenAccess = document.querySelector('.icon-availability_open');
-            if (hasClassFreeAccess || hasClassOpenAccess || AltOpenAccess) {
-                return true;
-            } else { 
-                return false;
+        let isOpenAccess = false;
+        if (checkOpenAccess) {
+            isOpenAccess = await checkAccess(page);
+    
+            if (!isOpenAccess) {
+                console.log(`Skipping downloading PDF from ${url} due to lack of open access.`);
+                return; // Если нет open access, пропустить обработку URL
             }
-        });
+        }
+
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
                 const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
                 // .filter(a => a.href.match(/.*doi\/pdf\/.*/))
-                .filter(a => a.href.match(/.*article-pdf\/doi\/.*/))
+                .filter(a => a.href.match(/.*article-pdf\/.*/))
                 return pdfLinks;
             });
             pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
@@ -110,7 +105,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=http:8.209.114.72:3129'],
+                args: ['--proxy-server=127.0.0.1:8118'],
                 headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
