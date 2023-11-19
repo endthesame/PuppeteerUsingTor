@@ -32,24 +32,36 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        const date = document.querySelector('meta[name="citation_publication_date"]') ? document.querySelector('meta[name="citation_publication_date"]').content : '';
+        var uniqueAuthors = [];
+        const authors = Array.from(document.querySelectorAll('.uk-article-author > a > small'))
+                            .map(element => element.textContent.replace(/(?:\s*,\s*(?:editor|author))*/g, '').trim())
+                            .filter(author => {
+                                if (author && !uniqueAuthors.includes(author)) {
+                                    uniqueAuthors.push(author);
+                                    return true;
+                                }
+                                return false;
+                            })
+                            .join('; ');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
-        const publisher = getMetaAttributes(['meta[name="DC.publisher"]'], 'content');
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
+        // const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        // const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
+        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
+        // const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
+        // const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
-        const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
+        const isbn = document.querySelector('.uk-article-isbn') ? 
+                                            document.querySelector('.uk-article-isbn').textContent.includes('DOI') ?'' :
+                                            document.querySelector('.uk-article-isbn').textContent.replace('ISBN: ', '') :'';
+        // const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
+        // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         //keywords
         //Type
-
-        const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+        // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "197": first_page, "198": last_page, "240": isbn };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
