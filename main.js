@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { crawl, extractData } = require('./crawler');
-const { downloadPDFs } = require('./download-utils');
+const { downloadPDFs } = require('./download-utils-puppeteer');
 const { checkAccess } = require('./utils');
 
 async function main() {
@@ -23,7 +23,7 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = false, checkOpenAccess = true);
+        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);

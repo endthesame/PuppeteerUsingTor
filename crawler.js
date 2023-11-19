@@ -31,37 +31,24 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = document.querySelector('meta[name="citation_publication_date"]') ? document.querySelector('meta[name="citation_publication_date"]').content : '';
-        var uniqueAuthors = [];
-        const authors = Array.from(document.querySelectorAll('.uk-article-author > a > small'))
-                            .map(element => element.textContent.replace(/(?:\s*,\s*(?:editor|author))*/g, '').trim())
-                            .filter(author => {
-                                if (author && !uniqueAuthors.includes(author)) {
-                                    uniqueAuthors.push(author);
-                                    return true;
-                                }
-                                return false;
-                            })
-                            .join('; ');
-        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
-        // const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        // const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
-        // const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        // const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const isbn = document.querySelector('.uk-article-isbn') ? 
-                                            document.querySelector('.uk-article-isbn').textContent.includes('DOI') ?'' :
-                                            document.querySelector('.uk-article-isbn').textContent.replace('ISBN: ', '') :'';
-        // const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
+        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
+        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
+        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        const mf_doi = document.querySelector('.doi') ? document.querySelector('.doi > a').href : '';
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        const mf_issn = document.querySelector('input[name="deepdyve-issn"]') ? document.querySelector('input[name="deepdyve-issn"]').value : '';
+        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content');
+        const volume = document.querySelector('span[property="volumeNumber"]') ? document.querySelector('span[property="volumeNumber"]').textContent : '';
+        const issue = document.querySelector('span[property="issueNumber"]') ? document.querySelector('span[property="issueNumber"]').textContent : '';
+        // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
+        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        //keywords
+        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "197": first_page, "198": last_page, "240": isbn };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, "176": volume, "208": issue, "205": language, "201": keywords };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -91,18 +78,20 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
-                // .filter(a => a.href.match(/.*doi\/pdf\/.*/))
-                .filter(a => a.href.match(/.*article-pdf\/.*/))
-                return pdfLinks;
-            });
-            pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
+                var pdfLinks = document.querySelector(".btn--pdf").href
+                return pdfLinks.replace("reader", "pdf") + "?download=true";
 
-            for (const pdfLink of pdfLinksToDownload) {
-                const pdfFileName = baseFileName + '.pdf';
-                const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
-                fs.appendFileSync(linksTxtPath, `${pdfLink} ${pdfFileName}\n`);
-            }
+                // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
+                // .filter(a => a.href.match(/\/doi\/reader.*/))
+                // .map(a => a.href.replace("reader", "pdf") + "?download=true");
+                // return pdfLinks;
+            });
+            // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
+
+
+            const pdfFileName = baseFileName + '.pdf';
+            const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
+            fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
         }
     }
 }
@@ -142,23 +131,6 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
-
-                    // ТОЛЬКО ДЛЯ ЭТОГО РЕСУРСА - ПРОВЕРКА НА 404 - В КНИГАХ
-                    let isNotFound = false;
-                    const element404 = await page.$('.uk-h1.uk-margin-small');
-                    if (element404) {
-                        isNotFound = await page.evaluate(element => element.textContent.includes('Not found'), element404);
-                    }
-                    if (isNotFound) {
-                        log(`The page ${url} contains "Not found". Skipping extraction.`);
-                        remainingLinks = remainingLinks.slice(1);
-                        fs.writeFileSync(linksFilePath, remainingLinks.join('\n'), 'utf-8', (err) => {
-                            if (err) {
-                                log(`Error writing to file: ${err.message}`);
-                            }
-                        });
-                        continue; // Пропускаем текущую ссылку и переходим к следующей
-                    }
 
                     await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true);
                     log(`Successfully processed ${url}`);
