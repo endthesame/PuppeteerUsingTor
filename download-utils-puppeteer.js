@@ -31,19 +31,19 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Получаем список файлов во временной папке
-            const files = fs.readdirSync(tempDownloadPath);
-            console.log(`Files found in ${tempDownloadPath}: ${files}`);
-            // Перемещаем и переименовываем первый найденный файл
-            if (files.length > 0) {
-                const tempFilePath = path.join(tempDownloadPath, files[0]);
-                fs.renameSync(tempFilePath, pdfSavePath);
-                console.log(`File moved and renamed to ${pdfSavePath}`);
-            } else {
-                console.error(`Error: No files found in ${tempDownloadPath}`);
-            }
-            // Удаляем временную папку
-            fs.rmdirSync(path.dirname(tempDownloadPath), { recursive: true });
-            console.log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
+            // const files = fs.readdirSync(tempDownloadPath);
+            // console.log(`Files found in ${tempDownloadPath}: ${files}`);
+            // // Перемещаем и переименовываем первый найденный файл
+            // if (files.length > 0) {
+            //     const tempFilePath = path.join(tempDownloadPath, files[0]);
+            //     fs.renameSync(tempFilePath, pdfSavePath);
+            //     console.log(`File moved and renamed to ${pdfSavePath}`);
+            // } else {
+            //     console.error(`Error: No files found in ${tempDownloadPath}`);
+            // }
+            // // Удаляем временную папку
+            // fs.rmdirSync(path.dirname(tempDownloadPath), { recursive: true });
+            // console.log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
 
         } catch (error) {
             console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
