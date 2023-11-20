@@ -1,7 +1,4 @@
-https://www.worldscientific.com/doi/10.1142/S0218196703001407
-https://www.worldscientific.com/doi/10.1142/S0218625X18500841
-https://www.worldscientific.com/doi/10.1142/S0219581X1100765X
-https://www.worldscientific.com/doi/10.1142/S2575900020500044
-https://www.worldscientific.com/doi/10.1142/S0217732322501346
-https://www.worldscientific.com/doi/10.1142/S0219519422400450
-https://www.worldscientific.com/doi/10.1142/S1793005722500077
+https://www.journals.uchicago.edu/doi/10.1093/bjps/axx057
+https://www.journals.uchicago.edu/doi/10.1093/bjps/axx041
+https://www.journals.uchicago.edu/doi/10.1086/683378
+https://www.journals.uchicago.edu/doi/10.1086/454264
