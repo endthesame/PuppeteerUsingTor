@@ -45,10 +45,19 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
+        //ABSTRACT
+        const abstractXPath = '//*[@id="abstract"]//div[@role="paragraph"]';
+        const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const abstractTexts = [];
+        for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
+            abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
+        }
+        const abstract = abstractTexts.join(' ');
+        
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, "176": volume, "208": issue, "205": language, "201": keywords };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;

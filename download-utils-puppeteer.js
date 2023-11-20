@@ -23,25 +23,58 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
+        const tempDownloadPath = pdfSavePath.slice(0, -4);
 
         try {
-            await downloadPDF(page, pdfLink, pdfSavePath);
+            await downloadPDF(page, pdfLink, tempDownloadPath);
             console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
             await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Получаем список файлов во временной папке
+            const files = fs.readdirSync(tempDownloadPath);
+            console.log(`Files found in ${tempDownloadPath}: ${files}`);
+            // Перемещаем и переименовываем первый найденный файл
+            if (files.length > 0) {
+                const tempFilePath = path.join(tempDownloadPath, files[0]);
+                fs.renameSync(tempFilePath, pdfSavePath);
+                console.log(`File moved and renamed to ${pdfSavePath}`);
+            } else {
+                console.error(`Error: No files found in ${tempDownloadPath}`);
+            }
+            // Удаляем временную папку
+            fs.rmdirSync(path.dirname(tempDownloadPath), { recursive: true });
+            console.log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
+
         } catch (error) {
             console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
-            await new Promise(resolve => setTimeout(resolve, 15000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             //changeTorIp();
+
+            // ИЗ-ЗА ТОГО ЧТО КАЖДОЕ СКАЧИВАНИЕ ФАЙЛА - ВЫДАЕТ ОШИБКУ NET::ERR_ABORTED (ПОТОМУ ЧТО СКАЧИВАТЬ НЕЛЬЗЯ, ТО И ТУТ ЗАДАЕТСЯ РЕНЕЙМ ФАЙЛОВ)
+            // Получаем список файлов во временной папке
+            const files = fs.readdirSync(tempDownloadPath);
+            console.log(`Files found in ${tempDownloadPath}: ${files}`);
+            // Перемещаем и переименовываем первый найденный файл
+            if (files.length > 0) {
+                const tempFilePath = path.join(tempDownloadPath, files[0]);
+                fs.renameSync(tempFilePath, pdfSavePath);
+                console.log(`File moved and renamed to ${pdfSavePath}`);
+            } else {
+                console.error(`Error: No files found in ${tempDownloadPath}`);
+            }
+            // Удаляем временную папку
+            fs.rmdirSync(tempDownloadPath, { recursive: true });
+            console.log(`Temporary folder deleted at ${tempDownloadPath}`);
         }
     }
 
     await browser.close();
 }
 
-async function downloadPDF(page, pdfLink, pdfSavePath) {
+async function downloadPDF(page, pdfLink, tempDownloadPath) {
     await page._client().send('Page.setDownloadBehavior', {
         behavior: 'allow',
-        downloadPath: pdfSavePath.slice(0, -4)
+        downloadPath: tempDownloadPath
     });
     await page.goto(pdfLink, { waitUntil: 'networkidle0', timeout: 30000 });
 }
