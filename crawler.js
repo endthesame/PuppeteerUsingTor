@@ -34,7 +34,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
+        const mf_doi = getMetaAttributes(['head > meta[scheme="doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
         const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
@@ -45,7 +45,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
+        const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
         //ABSTRACT
         const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
         const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
