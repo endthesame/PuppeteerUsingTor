@@ -36,11 +36,18 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         const mf_doi = getMetaAttributes(['head > meta[scheme="doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
-        const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
+        // const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
+        // const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
         const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content');
-        const volume = (document.querySelector('span[class="volume"]')?.textContent || '').match(/\d+/)?.[0] || '';
-        const issue = (document.querySelector('span[class="issue"]')?.textContent || '').match(/\d+/)?.[0] || '';
+        const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
+        const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
+
+        var pagesElement = document.querySelector('.volume--pages');
+        var pagesTextContent = pagesElement ? pagesElement.textContent : '';
+        var match = pagesTextContent.match(/Pages (\d+)-(\d+),/);
+
+        var first_page = match ? match[1] || '' : '';
+        var last_page = match ? match[2] || '' : '';
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
@@ -58,7 +65,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '185': mf_eissn };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '197': first_page, '198': last_page };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
