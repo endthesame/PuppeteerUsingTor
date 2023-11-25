@@ -95,8 +95,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".download_transportable > a").href
-                return pdfLinks.replace("epdf", "pdf") + "?download=true";
+                var pdfLinks = Array.from(document.querySelectorAll('.download_transportable > li > a')).find(a => a.querySelector('span')?.textContent.includes('View PDF'))?.getAttribute('href') || '';
+                return "https://pubsonline.informs.org" +  pdfLinks.replace("epdf", "pdf") + "?download=true";
+                //"https://pubsonline.informs.org" + 
 
                 // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
