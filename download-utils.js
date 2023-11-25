@@ -19,6 +19,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         try {
             await downloadPDF(pdfLink, pdfSavePath);
             console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (error) {
             console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
             await new Promise(resolve => setTimeout(resolve, 15000));
@@ -31,7 +32,7 @@ function downloadPDF(pdfLink, pdfSavePath) {
     return new Promise((resolve, reject) => {
         const proxyOptions = {
             host: 'http://127.0.0.1:8118',
-            //port: 8118,
+            //port: 8118, // НЕ РАЗКОМЕНТИРОВАТЬ
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9',
             },
