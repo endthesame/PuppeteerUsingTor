@@ -34,17 +34,18 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
-        const publisher = getMetaAttributes(['meta[name="DC.publisher"]'], 'content');
+        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
         const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
         const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
+        const language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
         const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
+        const abstract = document.querySelector(".article-content > .wd-jnl-art-abstract > p")? document.querySelector(".article-content > .wd-jnl-art-abstract > p").textContent : ""
 
-        const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+        const orcid = getMetaAttributes(['meta[name="citation_author_orcid"]'], 'content');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation, "81": abstract };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -68,7 +69,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         isOpenAccess = await page.evaluate(() => {
             // Проверка наличия элемента с классом .c__16
-            const hasClassC16 = document.querySelector('.c__16');
+            const hasClassC16 = document.querySelector('.wd-jnl-art-collection-label');
             if (hasClassC16) {
                 return true;
             } else { 
@@ -103,7 +104,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=http://localhost:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -116,6 +117,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
                 try {
                     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await page.waitForTimeout(3000);
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
