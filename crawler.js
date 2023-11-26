@@ -38,12 +38,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
         const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
+        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const doc_type = getMetaAttributes(['meta[name="citation_article_type"]'], 'content');
+        const abstract = document.querySelector('.citationSectionDiv > .ArticleContentText')? document.querySelector('.citationSectionDiv > .ArticleContentText').textContent : "";
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "176": volume, "208": issue, "197": first_page, "205": language, "144": affiliation, "239": doc_type };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "184": mf_issn, "235": publisher, "176": volume, "208": issue, "197": first_page, "198": last_page , "205": language, "144": affiliation, "239": doc_type, "81": abstract };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -102,7 +103,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=http://localhost:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
