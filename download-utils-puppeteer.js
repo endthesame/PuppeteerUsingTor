@@ -28,7 +28,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         try {
             await downloadPDF(page, pdfLink, tempDownloadPath);
             console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             // Получаем список файлов во временной папке
             // const files = fs.readdirSync(tempDownloadPath);
@@ -77,6 +77,7 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         downloadPath: tempDownloadPath
     });
     await page.goto(pdfLink, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.waitForTimeout(5000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };
