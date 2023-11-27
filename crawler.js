@@ -47,7 +47,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
         //ABSTRACT
-        const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
+        const abstractXPath = '//*[@class="articleBody_abstractText"]/text()';
         const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         const abstractTexts = [];
         for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
@@ -88,7 +88,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".download_transportable > a").href
+                var pdfLinks = document.querySelector(".pdf-download__link").href
                 return pdfLinks.replace("epdf", "pdf") + "?download=true";
 
                 // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
@@ -117,11 +117,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 // args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
-
+            await page.goto("https://pubs.acs.org/", { waitUntil: 'networkidle2', timeout: 30000 });
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
 
