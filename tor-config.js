@@ -24,9 +24,14 @@ async function shouldChangeIP(page) {
         return document.readyState; // Используйте любые данные или свойства, которые позволяют вам определить состояние страницы.
     });
     const currentURL = page.url();
+    const kapchaBlock = await page.evaluate(() => {
+        const kapcha = document.querySelector('.cover-heading-pn')?.textContent === "APA PsycNet Site Unavailable";
+        return kapcha;
+    }
 
+    )
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || kapchaBlock) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
