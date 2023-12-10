@@ -30,42 +30,64 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // }
             return values.join('; ');
         };
+
+        function extractAuthorsAndInstitutions() {
+            const authors = Array.from(document.querySelectorAll('meta[name="citation_author"]'));
+            const institutions = Array.from(document.querySelectorAll('meta[name="citation_author_institution"]'));
+          
+            const result = [];
+          
+            for (const author of authors) {
+                const authorName = author.getAttribute('content');
+                const authorInstitutions = [];
+            
+                // сопоставление авторов и аффиляции
+                let nextSibling = author.nextElementSibling;
+                while (nextSibling && nextSibling.tagName === 'META' && nextSibling.getAttribute('name') === 'citation_author_institution') {
+                authorInstitutions.push(nextSibling.getAttribute('content'));
+                nextSibling = nextSibling.nextElementSibling;
+                }
+                if (authorInstitutions.length != 0) {
+                    result.push(`${authorName} : ${authorInstitutions.join('!')}`);
+                }
+            }
+          
+            return result.join("; ");
+          }
+          
+        const affiliation = extractAuthorsAndInstitutions();
     
-        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
-        const mf_doi = getMetaAttributes(['head > meta[scheme="doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        // const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
+        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content') || "";
+        const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') || "";
+        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || "";
+        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content') || "";
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
+        const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content') || "";
         // const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
-        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content');
-        const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
-        const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
+        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
+        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
+        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content') || "";
+        // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
+        // const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
 
-        var pagesElement = document.querySelector('.volume--pages');
-        var pagesTextContent = pagesElement ? pagesElement.textContent : '';
-        var match = pagesTextContent.match(/Pages (\d+)-(\d+),/);
+        // var pagesElement = document.querySelector('.volume--pages');
+        // var pagesTextContent = pagesElement ? pagesElement.textContent : '';
+        // var match = pagesTextContent.match(/Pages (\d+)-(\d+),/);
 
-        var first_page = match ? match[1] || '' : '';
-        var last_page = match ? match[2] || '' : '';
-        // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        // var first_page = match ? match[1] || '' : '';
+        // var last_page = match ? match[2] || '' : '';
+        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content') || "";
+        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content') || "";
+        // const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
+        // const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
         //ABSTRACT
-        const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
-        const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        const abstractTexts = [];
-        for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
-            abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
-        }
-        const abstract = abstractTexts.join(' ');
+        const abstract = (document.querySelector(".abstract")? document.querySelector(".abstract").textContent.trim() : '') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '197': first_page, '198': last_page };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn};
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -95,8 +117,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = Array.from(document.querySelectorAll('.download_transportable > a')).find(a => a.querySelector('span')?.textContent.includes('View PDF'))?.getAttribute('href') || '';
-                return "https://pubsonline.informs.org" + pdfLinks.replace("epdf", "pdf") + "?download=true";
+                var pdfLinks = document.querySelector('.article-pdfLink').href || '';
+                return pdfLinks.replace("epdf", "pdf");
                 //"https://pubsonline.informs.org" + 
 
                 // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
@@ -124,7 +146,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                // args: ['--proxy-server=127.0.0.1:8118'],
+                args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -137,7 +159,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 50000 });
 
                     await page.waitForTimeout(3000); // Задержка краулинга
 
