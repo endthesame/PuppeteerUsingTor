@@ -31,21 +31,21 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || "";
+        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content') || "";
+        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
         //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
         //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
-        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content');
+        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
         const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
         const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
+        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content') || "";
         //ABSTRACT
         const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
         const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -53,16 +53,27 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
             abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         }
-        const abstract = abstractTexts.join(' ');
+        const abstract = abstractTexts.join(' ') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract};
+        if (!title)
+        {
+            metadata = false
+        }
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
+
+    if (!meta_data)
+    {
+        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        return;
+    }
+
     meta_data["217"] = url; //mf_url
     const data = meta_data;
 
