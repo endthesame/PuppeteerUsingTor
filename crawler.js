@@ -70,24 +70,20 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
         // const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
 
-        // var pagesElement = document.querySelector('.volume--pages');
-        // var pagesTextContent = pagesElement ? pagesElement.textContent : '';
-        // var match = pagesTextContent.match(/Pages (\d+)-(\d+),/);
+        var match = (document.querySelector('.ww-citation-primary') || {}).textContent.match(/Pages (\d+)[^\d]+(\d+)/);
+        var first_page = match ? match[1] || '' : '';
+        var last_page = match ? match[2] || '' : '';
 
-        // var first_page = match ? match[1] || '' : '';
-        // var last_page = match ? match[2] || '' : '';
-        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content') || "";
-        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content') || "";
         // const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        // const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
+        const keywords = Array.from(document.querySelectorAll('.kwd-part')).map(keyword => keyword.textContent.trim()).filter(Boolean).join('; ') || '';
         //ABSTRACT
         const abstract = (document.querySelector(".abstract")? document.querySelector(".abstract").textContent.trim() : '') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn};
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn, '201': keywords};
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -147,7 +143,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
