@@ -22,7 +22,7 @@ async function getCurrentIP() {
 
 async function checkAccess(page) {
     return await page.evaluate(() => {
-        const classesToCheck = ['.free-access', '.open-access', '.icon-availability_open', '.icon-availability_free', '.meta-panel__access--free', '.meta-panel__access--open', 'span[title="This content is available for free"]'];
+        const classesToCheck = ['.free-access', '.open-access', '.icon-availability_open', '.icon-availability_free', '.meta-panel__access--free', '.meta-panel__access--open', 'span[title="This content is available for free"]', 'open-access-icon'];
         for (const classSelector of classesToCheck) {
             const elements = document.querySelectorAll(classSelector);
             if (elements.length > 0) {
