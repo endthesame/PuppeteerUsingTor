@@ -59,11 +59,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const affiliation = extractAuthorsAndInstitutions();
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content') || "";
+        const conference_title = getMetaAttributes(['meta[name="citation_conference_title"]'], 'content') || "";
+        const conference_series_id = getMetaAttributes(['meta[name="citation_conference_series_id"]'], 'content') || "";
+        const keywords = getMetaAttributes(['meta[name="citation_keywords"]'], 'content') || "";
+        const event_place = (document.querySelector('.ProceedingsArticleOpenAccessContentTextBackGround').textContent.match(/Event:[^]*?(\d{4},)([^]*)/) || [])[2]?.replace(/\d{4},/, '').trim() || '';
         const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') || "";
-        const authors = getMetaAttributes(['meta[name="author"]'], 'content') || "";
+        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content') || "";
-        const mf_book = (document.querySelector('.ProceedingsArticleOpenAccessFooterTextRow').textContent?.trim().match(/Book: (.+)/) || [])[1] || '';
-        const type = getMetaAttributes(['meta[property="og:type"]'], 'content') || "";
+        const type = getMetaAttributes(['meta[name="citation_article_type"]'], 'content') || "";
         const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
         const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
         // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
@@ -80,7 +83,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "176": volume, '81': abstract, '197': first_page, '198': last_page, '205': language, '242': mf_book, '239': type };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "176": volume, '81': abstract, '197': first_page, '198': last_page, '205': language, '239': type, '144': affiliation, '201': keywords, '500': conference_title, '501': conference_series_id, '502': event_place };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
