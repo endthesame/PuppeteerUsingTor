@@ -62,8 +62,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content') || "";
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
-        const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content') || "";
-        // const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
+        const mf_issn = Array.from(document.querySelectorAll('.journal-footer-colophon li'))
+        .find(li => li.textContent.includes('Print ISSN'))
+        ?.textContent.replace('Print ISSN', '').trim() 
+        || getMetaAttributes(['meta[name="citation_issn"]'], 'content') || "";
+        const mf_eissn = Array.from(document.querySelectorAll('.journal-footer-colophon li'))
+                        .find(li => li.textContent.includes('Online ISSN'))
+                        ?.textContent.replace('Online ISSN', '')
+                        .trim() || '';
         const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
         const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
         const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content') || "";
@@ -83,7 +89,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn, '201': keywords};
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn, '185': mf_eissn, '201': keywords};
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
