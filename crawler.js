@@ -36,7 +36,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         const mf_doi = document.querySelector('.doi') ? document.querySelector('.doi > a').href : '';
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        const mf_issn = document.querySelector('input[name="deepdyve-issn"]') ? document.querySelector('input[name="deepdyve-issn"]').value : '';
+        const mf_issn = (Array.from(document.querySelectorAll('.footer__row__one .rlist span')).find(el => el.textContent.includes('ISSN')) || { textContent: '' }).textContent.replace('ISSN: ', '').trim() || '';
+        const mf_eissn = (Array.from(document.querySelectorAll('.footer__row__one .rlist span')).find(el => el.textContent.includes('Online ISSN')) || { textContent: '' }).textContent.replace('Online ISSN: ', '').trim() || '';
         const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content');
         const volume = document.querySelector('span[property="volumeNumber"]') ? document.querySelector('span[property="volumeNumber"]').textContent : '';
         const issue = document.querySelector('span[property="issueNumber"]') ? document.querySelector('span[property="issueNumber"]').textContent : '';
@@ -57,7 +58,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "184": mf_issn, '185': mf_eissn, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract };
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
