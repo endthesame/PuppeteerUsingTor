@@ -123,7 +123,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector('.article-pdfLink').href || '';
+                var pdfLinks = document.querySelector('.article-pdfLink')? document.querySelector('.article-pdfLink').href : '';
                 return pdfLinks.replace("epdf", "pdf");
                 //"https://pubsonline.informs.org" + 
 
