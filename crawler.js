@@ -70,9 +70,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                         ?.textContent.replace('ISBN electronic:', '')
                         .trim() || '';
         const publisher = document.querySelector('.book-info__publisher-name')? document.querySelector('.book-info__publisher-name').innerText.trim() : "";
-        const volume = document.querySelector('.book-info__volume-number')? document.querySelector('.book-info__volume-number').innerText.trim() : "";
+        //const volume = document.querySelector('.book-info__volume-number')? document.querySelector('.book-info__volume-number').innerText.trim() : "";
         const typeOfArticle = getMetaAttributes(['meta[property="og:type"]'], 'content') || "";
-        const subtitle = document.querySelector('.book-series')? document.querySelector('.book-series').innerText.trim() : "";
+        //const subtitle = document.querySelector('.book-series')? document.querySelector('.book-series').innerText.trim() : "";
         // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
         // const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
 
@@ -88,12 +88,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         // const keywords = getMetaAttributes(['head > meta[name="keywords"]'], 'content');
         //ABSTRACT
-        // const abstract = (document.querySelector(".abstract")? document.querySelector(".abstract").textContent.trim() : '') || "";
+        const abstract = (document.querySelector(".abstract")? document.querySelector(".abstract").innerText.trim() : '') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle};
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '81': abstract};
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
@@ -123,7 +123,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector('.article-pdfLink')? document.querySelector('.article-pdfLink').href : "";
+                var pdfLinks = document.querySelector('.section-pdfLink')? document.querySelector('.section-pdfLink').href : "";
                 return pdfLinks.replace("epdf", "pdf");
                 //"https://pubsonline.informs.org" + 
 
