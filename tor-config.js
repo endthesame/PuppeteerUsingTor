@@ -26,16 +26,24 @@ async function shouldChangeIP(page) {
     const currentURL = page.url();
 
     const error403 = await page.evaluate(() => {
-        if (document.querySelector('h1').textContent === "403 Forbidden"){
+        if (document.querySelector('h1')){
             return true
         }
         else {
             return false
         }
     });
+    const isNoTitle = await page.evaluate(() => {
+        if (!document.querySelector('meta[name="citation_title"]')) {
+            console.log("THERE IS NO TITLE");
+            return true;
+        } else {
+            return false;
+        }
+    });
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || error403) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || isNoTitle || currentURL.includes("crawlprevention")) { 
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
