@@ -31,7 +31,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
 
     let browser = await puppeteer.launch({
         //args: ['--proxy-server=127.0.0.1:8118'],
-        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+        headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
     });
 
     for (const link of links) {
