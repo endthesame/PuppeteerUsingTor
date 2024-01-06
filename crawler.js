@@ -63,7 +63,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('div.formatted-text p').innerText? document.querySelector('div.formatted-text p').innerText.trim().replaceAll("\n", " ") : "";
+        const abstract = document.querySelector('div.formatted-text p')? document.querySelector('div.formatted-text p').innerText.trim().replaceAll("\n", " ") : "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
