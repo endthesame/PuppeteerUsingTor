@@ -62,7 +62,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const conference_title = getMetaAttributes(['meta[name="citation_conference_title"]'], 'content') || "";
         const conference_series_id = getMetaAttributes(['meta[name="citation_conference_series_id"]'], 'content') || "";
         const keywords = getMetaAttributes(['meta[name="citation_keywords"]'], 'content') || "";
-        const event_place = (document.querySelector('.ProceedingsArticleOpenAccessContentTextBackGround').textContent.match(/Event:[^]*?(\d{4},)([^]*)/) || [])[2]?.replace(/\d{4},/, '').trim() || '';
+        const event_place = document.querySelector('.ProceedingsArticleOpenAccessContentTextBackGround')? (document.querySelector('.ProceedingsArticleOpenAccessContentTextBackGround').textContent.match(/Event:[^]*?(\d{4},)([^]*)/) || [])[2]?.replace(/\d{4},/, '').trim() : '' ;
         const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') || "";
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content') || "";
@@ -78,16 +78,27 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         //ABSTRACT
-        const abstract = (document.querySelector(".ArticleContentText").textContent ? document.querySelector(".ArticleContentText").textContent.trim().replace(/^Abstract\s*/i, '').replace(/^PDF download only.\s*/i, '').replace(/\s+/g, ' ') : '') || "";
+        const abstract = (document.querySelector(".ArticleContentText")? document.querySelector(".ArticleContentText").textContent.trim().replace(/^Abstract\s*/i, '').replace(/^PDF download only.\s*/i, '').replace(/\s+/g, ' ') : '') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "176": volume, '81': abstract, '197': first_page, '198': last_page, '205': language, '239': type, '144': affiliation, '201': keywords, '500': conference_title, '501': conference_series_id, '502': event_place };
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "176": volume, '81': abstract, '197': first_page, '198': last_page, '205': language, '239': type, '144': affiliation, '201': keywords, '254': conference_title, '255': event_place };
+        if (!title)
+        {
+            metadata = false
+        }
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
+
+    if (!meta_data)
+    {
+        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        return;
+    }
+
     meta_data["217"] = url; //mf_url
     const data = meta_data;
 
@@ -112,25 +123,24 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         }
 
         if (isOpenAccess) {
-            try {
-                pdfLinksToDownload = await page.evaluate(() => {
-                    var pdfLinks = document.querySelector('.ProceedingsArticleRow >.DownloadSaveButton1').href || '';
-                    return pdfLinks.replace("epdf", "pdf");
-                    //"https://pubsonline.informs.org" + 
-    
-                    // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
-                    // .filter(a => a.href.match(/\/doi\/reader.*/))
-                    // .map(a => a.href.replace("reader", "pdf") + "?download=true");
-                    // return pdfLinks;
-                });
-                // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
-    
-    
+            pdfLinksToDownload = await page.evaluate(() => {
+                var pdfLinks = document.querySelector('.ProceedingsArticleRow >.DownloadSaveButton1')? document.querySelector('.ProceedingsArticleRow >.DownloadSaveButton1').href : '';
+                if (!pdfLinks){
+                    return null;
+                }
+                return pdfLinks.replace("epdf", "pdf");
+                //"https://pubsonline.informs.org" + 
+
+                // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
+                // .filter(a => a.href.match(/\/doi\/reader.*/))
+                // .map(a => a.href.replace("reader", "pdf") + "?download=true");
+                // return pdfLinks;
+            });
+            // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
+            if (pdfLinksToDownload){
                 const pdfFileName = baseFileName + '.pdf';
                 const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
                 fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
-            } catch (error) {
-                console.log("cannot find pdf link");
             }
         }
     }
@@ -147,7 +157,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -161,7 +171,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 try {
                     await page.goto(url, { waitUntil: 'networkidle2', timeout: 50000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(1000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
