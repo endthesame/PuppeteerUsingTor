@@ -132,7 +132,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
+                //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -140,6 +140,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
+            await page.setViewport({ width: 1200, height: 800 });
+            await page.goto(remainingLinks[0].trim(), { waitUntil: 'networkidle2', timeout: 30000 });
+            await page.waitForTimeout(15000);
 
             while (remainingLinks.length > 0) {
                 const url = remainingLinks[0].trim();
