@@ -54,7 +54,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.abstract')? document.querySelector('.abstract').innerText.replaceAll('\n', ' ') : "";
+        const abstract = document.querySelector('.abstract')? document.querySelector('.abstract').innerText.replaceAll('\n', ' ') : Array.from(document.querySelectorAll('div[data-widgetname="ArticleFulltext"] p')).map(elem => elem.innerText.replace("\n", " ")).join(' ') || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
