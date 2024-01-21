@@ -31,21 +31,21 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
-        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
+        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
+        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
+        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        const mf_issn = document.querySelector('.journal-footer-colophon')? document.querySelector('.journal-footer-colophon').innerText.match(/Print ISSN (\d+-\d+[a-zA-Z]?)/)? document.querySelector('.journal-footer-colophon').innerText.match(/Print ISSN (\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
-        const mf_eissn = document.querySelector('.journal-footer-colophon')? document.querySelector('.journal-footer-colophon').innerText.match(/Online ISSN (\d+-\d+[a-zA-Z]?)/)? document.querySelector('.journal-footer-colophon').innerText.match(/Online ISSN (\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        const mf_issn = document.querySelector('.article__info .rlist')? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)[1] : "" : "";
+        const mf_eissn = document.querySelector('.article__info .rlist')? document.querySelector('.article__info .rlist').innerText.match(/Online ISSN:(\d+-\d+[A-Za-z]?)/)? document.querySelector('.article__info .rlist').innerText.match(/Online ISSN:(\d+-\d+[A-Za-z]?)/)[1] : "" : "";
+        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
+        const volume = document.querySelector('.article-cover-image span.volume')? document.querySelector('.article-cover-image span.volume').innerText.match(/Volume (.*)/)? document.querySelector('.article-cover-image span.volume').innerText.match(/Volume (.*)/)[1] : "" : "";
+        const issue = document.querySelector('.article-cover-image span.issue')? document.querySelector('.article-cover-image span.issue').innerText.match(/Issue (.*)/)? document.querySelector('.article-cover-image span.issue').innerText.match(/Issue (.*)/)[1] : "" : "";
+        // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
+        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = Array.from(document.querySelectorAll('.kwd-part')).map(elem => elem.innerText).join('; ') || "";
+        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
