@@ -93,11 +93,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn, '185': mf_eissn};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '144': affiliation, '184': mf_issn, '185': mf_eissn};
+        if (!title)
+        {
+            metadata = false
+        }
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
+
+    if (!meta_data)
+    {
+        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        return;
+    }
+
     meta_data["217"] = url; //mf_url
     const data = meta_data;
 
@@ -124,6 +135,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
                 var pdfLinks = document.querySelector('.article-pdfLink')? document.querySelector('.article-pdfLink').href : '';
+                if (!pdfLinks){
+                    return null;
+                }
                 return pdfLinks.replace("epdf", "pdf");
                 //"https://pubsonline.informs.org" + 
 
@@ -135,9 +149,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
 
-            const pdfFileName = baseFileName + '.pdf';
-            const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
-            fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
+            if (pdfLinksToDownload){
+                const pdfFileName = baseFileName + '.pdf';
+                const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
+                fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
+            }
         }
     }
 }
