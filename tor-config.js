@@ -26,7 +26,7 @@ async function shouldChangeIP(page) {
     const currentURL = page.url();
 
     const isTitleAvailable = await page.evaluate(() => {
-        if (document.querySelector('meta[name="citation_title"]')) {
+        if (document.querySelector('.book-info__meta .book-info__title')) {
             return true;
         } else {
             return false;
