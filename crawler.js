@@ -33,19 +33,19 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
         const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || Array.from(document.querySelectorAll('.authors .al-author-name')).map(elem => elem.innerText).join('; ');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        const mf_issn = document.querySelector('.journal-footer-colophon')? document.querySelector('.journal-footer-colophon').innerText.match(/Print ISSN (\d+-\d+[a-zA-Z]?)/)? document.querySelector('.journal-footer-colophon').innerText.match(/Print ISSN (\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
-        const mf_eissn = document.querySelector('.journal-footer-colophon')? document.querySelector('.journal-footer-colophon').innerText.match(/Online ISSN (\d+-\d+[a-zA-Z]?)/)? document.querySelector('.journal-footer-colophon').innerText.match(/Online ISSN (\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        const mf_book = document.querySelector('.book-info__meta .book-info__title') ? document.querySelector('.book-info__meta .book-info__title').innerText.replaceAll('\n', " ") : "";
+        const book_series = document.querySelector('.book-info__meta .book-series') ? document.querySelector('.book-info__meta .book-series').innerText.replaceAll('\n', " ") : "";
+        const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
+        const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
+        // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
+        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = Array.from(document.querySelectorAll('.kwd-part')).map(elem => elem.innerText).join('; ') || "";
+        const type = document.querySelector('.chapterTopInfo  .chapter-groups') ? document.querySelector('.chapterTopInfo  .chapter-groups').innerText.replaceAll('\n', " ") : "";
+        const editors = Array.from(document.querySelectorAll('.editors .al-author-name')).map(elem => elem.innerText).join('; ') || "";
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -59,8 +59,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords};
-        if (!title)
+        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': book_series, '241':mf_eisbn, '239': type };
+        if (!mf_book)
         {
             metadata = false
         }
@@ -70,7 +70,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
     if (!meta_data)
     {
-        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        console.log(`Skipping from ${url} due to lack of metadata (mf_book).`);
         return;
     }
 
@@ -132,7 +132,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
