@@ -99,7 +99,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector("#Toolbar .pdf")?document.querySelector("#Toolbar .pdf").href : "";
+                var pdfLinks = document.querySelector(".article-coolBar--download .download_transportable a")?document.querySelector(".article-coolBar--download .download_transportable a").href : "";
                 if (!pdfLinks){
                     return null;
                 }
