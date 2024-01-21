@@ -131,6 +131,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             // await getCurrentIP();
 
             browser = await puppeteer.launch({
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
