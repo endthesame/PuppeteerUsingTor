@@ -71,7 +71,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     if (!meta_data)
     {
         console.log(`Skipping from ${url} due to lack of metadata (title).`);
-        return;
+        return false;
     }
 
     meta_data["217"] = url; //mf_url
@@ -119,6 +119,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             }
         }
     }
+    return true;
 }
 
 async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
@@ -163,18 +164,23 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
+                    //ИЗМЕНЕНО ДЛЯ COLAB: ЕСЛИ НЕ НАЙДЕНО ЧТО-ТО ИЗ ВАЖНОЕ ИЗ МЕТЫ ТО СТОПИТСЯ ПРОЦЕСС
+                    var isOkay = await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
-                    log(`Successfully processed ${url}`);
+                    if (isOkay) {
+                        log(`Successfully processed ${url}`);
+                        // Убираем обработанную ссылку из файла
+                        remainingLinks = remainingLinks.slice(1);
+                        // Асинхронная запись в файл
+                        fs.writeFileSync(linksFilePath, remainingLinks.join('\n'), 'utf-8', (err) => {
+                            if (err) {
+                                log(`Error writing to file: ${err.message}`);
+                            }
+                        });
+                    } else {
+                        log(`No important data, probably need to change IP: ${url}`);
+                    }
 
-                    // Убираем обработанную ссылку из файла
-                    remainingLinks = remainingLinks.slice(1);
-                    // Асинхронная запись в файл
-                    fs.writeFileSync(linksFilePath, remainingLinks.join('\n'), 'utf-8', (err) => {
-                        if (err) {
-                            log(`Error writing to file: ${err.message}`);
-                        }
-                    });
                 } catch (error) {
                     log(`Error processing ${url}: ${error.message}`);
                     // Продолжаем внутренний цикл при ошибке
