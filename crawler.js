@@ -152,7 +152,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
 
                     await page.waitForTimeout(3000); // Задержка краулинга
 
