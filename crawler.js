@@ -59,7 +59,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const last_page = document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)?document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)[2] : "" : "";
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = AArray.from(document.querySelectorAll('.col-md-8 .card .card-body p')).map(elem => {
+        const keywords = Array.from(document.querySelectorAll('.col-md-8 .card .card-body p')).map(elem => {
             var text = elem.innerText.trim();
             if (text.includes("Keywords:")){
               text = text.replaceAll("Keywords:", "");
