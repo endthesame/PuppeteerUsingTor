@@ -13,6 +13,8 @@ async function main() {
         const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
         const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
 
+        const collab_pdf_folder = path.join('/content/drive/MyDrive/royal_journals/pdfs');
+
         // Создать структуру папок, если они не существуют
         if (!fs.existsSync(outputFolderPath)) fs.mkdirSync(outputFolderPath);
         if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
@@ -26,7 +28,7 @@ async function main() {
         await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        await downloadPDFs(path.join("/content/drive/MyDrive/royal_journals/Links.txt"), collab_pdf_folder);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
