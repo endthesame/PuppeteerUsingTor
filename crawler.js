@@ -41,18 +41,26 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         });
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText.trim().replaceAll("\n", " ") : "";
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
+        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";;
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        //const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
-        //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
+        const mf_issn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
+        const mf_eissn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
         const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
         const volume = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/)[1] : "" : "";
         const issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
         const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
         const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
         const type = getMetaAttributes(['meta[name="og:type"]'], 'content');
+        var editors = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/Editor:(.*)\n/)? document.querySelector('.cover-image__details-extra').innerText.match(/Editor:(.*)\n/)[1] : "" : "";
+        if (!editors){
+            editors = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/Editors:(.*)\n/)? document.querySelector('.cover-image__details-extra').innerText.match(/Editors:(.*)\n/)[1] : "" : "";
+        }
+
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
@@ -69,7 +77,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '235': publisher, '239': type, '201': keywords};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '235': publisher, '239': type, '201': keywords, '207': editors, '184': mf_issn, '185': mf_eissn};
         if (!title)
         {
             metadata = false
@@ -147,6 +155,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             });
 
             page = await browser.newPage();
+            await page.setViewport({ width: 1600, height: 900 });
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
