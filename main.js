@@ -26,7 +26,7 @@ async function main() {
         await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join("/content/drive/MyDrive/royal_journals/Links.txt"), pdfFolderPath);
+        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
