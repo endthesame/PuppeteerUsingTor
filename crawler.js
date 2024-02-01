@@ -51,10 +51,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
         const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
         const type = getMetaAttributes(['meta[name="og:type"]'], 'content');
-        var editors = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/Editor:(.*)\n/)? document.querySelector('.cover-image__details-extra').innerText.match(/Editor:(.*)\n/)[1] : "" : "";
-        if (!editors){
-            editors = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/Editors:(.*)\n/)? document.querySelector('.cover-image__details-extra').innerText.match(/Editors:(.*)\n/)[1] : "" : "";
-        }
+        var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
+            return element !== "" && element !== " ";
+          }).join("; ");
 
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
