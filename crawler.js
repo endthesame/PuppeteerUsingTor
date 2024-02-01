@@ -30,27 +30,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // }
             return values.join('; ');
         };
-
-        let firstPage, lastPage, year;
-
-        const tocHeadings = document.querySelectorAll('.article__tocHeading');
-
-        tocHeadings.forEach(heading => {
-            const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
-            [_, firstPage, lastPage, year] = match.map(item => item || '');
-        });
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText.trim().replaceAll("\n", " ") : "";
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";;
+        var date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";;
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        // const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        var rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
+        var authors = Array.from([...new Set(rawAuthors)]).join('; ')
+
+
+        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.issue-item__doi')? document.querySelector('.issue-item__doi').innerText.replaceAll('https://doi.org/', '') : "";
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || document.querySelector('.issue-item__detail .epub-section__title')? document.querySelector('.issue-item__detail .epub-section__title').innerText : "";
         const mf_issn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
         const mf_eissn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
-        const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
+        const publisher = document.querySelector('.publisher__name')? document.querySelector('.publisher__name').innerText : "";
         const volume = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/)[1] : "" : "";
         const issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
         const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
