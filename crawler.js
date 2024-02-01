@@ -33,7 +33,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        var authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         if (!authors){
             var rawAuthors = Array.from(document.querySelectorAll('.author-name')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
