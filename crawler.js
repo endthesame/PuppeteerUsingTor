@@ -34,6 +34,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        if (!authors){
+            var rawAuthors = Array.from(document.querySelectorAll('.author-name')).map(elem => elem.innerText)
+            authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        }
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_issn = document.querySelector('.article__info .rlist')? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)[1] : "" : "";
