@@ -69,10 +69,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         const language = getMetaAttributes(['meta[name="DC.Language"]'], 'content');
-        const abstract = document.querySelector('.capsule__text')? document.querySelector('.capsule__text').innerText.replaceAll('\n',' ') : "";
+        const abstract = document.querySelector('.capsule__text')? document.querySelector('.capsule__text').innerText.replaceAll('\n',' ').match(/(.*)(Keywords: )?/)? document.querySelector('.capsule__text').innerText.replaceAll('\n',' ').match(/(.*)(Keywords: )?/)[1]: "" : "";
         const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+        const keywords = document.querySelector('.capsule__text')? document.querySelector('.capsule__text').innerText.replaceAll('\n',' ').match(/(.*)(Keywords: .*)/)? document.querySelector('.capsule__text').innerText.replaceAll('\n',' ').match(/(.*)(Keywords: .*)/)[2].replace("Keywords: ",""): "" : "";
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "185": mf_eissn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation, '81': abstract };
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "232": mf_journal, "185": mf_eissn, "235": publisher, "234": orcid, "176": volume, "208": issue, "197": first_page, "198": last_page, "205": language, "144": affiliation, '81': abstract, '201': keywords };
         if (!title)
         {
             metadata = false
