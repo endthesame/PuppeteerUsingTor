@@ -32,7 +32,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText.trim().replaceAll("\n", " ") : "";
-        var date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";;
+        var date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || document.querySelector('.CitationCoverDate')? document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)?document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)[0] : "" : "" || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
