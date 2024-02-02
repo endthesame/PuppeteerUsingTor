@@ -58,7 +58,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const affiliation = extractAuthorsAndInstitutions();
 
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]'], 'content');
+        var date = getMetaAttributes(['meta[name="citation_publication_date"]', 'meta[name="citation_online_date"]'], 'content');
+        date = date.replaceAll("/", "-");
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
