@@ -59,7 +59,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //const affiliation = extractAuthorsAndInstitutions();
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || "";
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        var date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
         date = date.replaceAll(/[A-Za-z]/g, "")
         const authors = getMetaAttributes(['meta[name="dc.Contributor"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
@@ -76,7 +76,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         var last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content') || "";
         const type = getMetaAttributes(['meta[name="dc.Type"]'], 'content') || "";
 
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        var language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
         if (language === "en"){
             language = "eng";
         }
