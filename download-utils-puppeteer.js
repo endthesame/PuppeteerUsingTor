@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const {changeTorIp, shouldChangeIP} = require('./tor-config');
+const log = require('./logger');
 
 puppeteer.use(StealhPlugin());
 
@@ -26,83 +27,54 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
     }));
 
 
-
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     let browser = await puppeteer.launch({
-        args: ['--proxy-server=127.0.0.1:8118'],
+        //args: ['--proxy-server=127.0.0.1:8118'],
         headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
     });
-    let page = await browser.newPage();
 
     for (const link of links) {
         if (!link.trim()) {
             continue;
         }
-
+        let page = await browser.newPage();
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
         const tempDownloadPath = pdfSavePath.slice(0, -4);
-
-        try {
+        try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            console.log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            await shouldChangeIP(page)
-            await browser.close()
+            await new Promise(resolve => setTimeout(resolve, 5000)); //timeout (waiting for the download to complete)
+            log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
+            await page.close();
+            const files = fs.readdirSync(tempDownloadPath);
+            log(`Files found in ${tempDownloadPath}: ${files}`);
+            if (files.length > 0) {
+                const tempFilePath = path.join(tempDownloadPath, files[0]);
+                fs.renameSync(tempFilePath, pdfSavePath);
+                log(`File moved and renamed to ${pdfSavePath}`);
+            } else {
+                console.error(`Error: No files found in ${tempDownloadPath}`);
+            }
+            // Удаляем временную папку
+            try {
+                fs.rmSync(tempDownloadPath, { recursive: true });
+                log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
+                log(`PDF downloaded successfully from ${pdfLink} and saved as ${pdfSavePath}`);
+            } catch (error) {
+                log("Cannot remove dir: ", error)
+            }
+        } catch (error) {
+            log(`Cant download PDF file: ${error}`)
+            await browser.close();
+            await new Promise(resolve => setTimeout(resolve, 20000));
             browser = await puppeteer.launch({
                 //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
-            page = await browser.newPage();
-
-            // Получаем список файлов во временной папке
-            // const files = fs.readdirSync(tempDownloadPath);
-            // console.log(`Files found in ${tempDownloadPath}: ${files}`);
-            // // Перемещаем и переименовываем первый найденный файл
-            // if (files.length > 0) {
-            //     const tempFilePath = path.join(tempDownloadPath, files[0]);
-            //     fs.renameSync(tempFilePath, pdfSavePath);
-            //     console.log(`File moved and renamed to ${pdfSavePath}`);
-            // } else {
-            //     console.error(`Error: No files found in ${tempDownloadPath}`);
-            // }
-            // // Удаляем временную папку
-            // fs.rmdirSync(path.dirname(tempDownloadPath), { recursive: true });
-            // console.log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
-
-        } catch (error) {
-            console.error(`Error downloading PDF from ${pdfLink}: ${error.message}`);
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            //changeTorIp();
-
-            // ИЗ-ЗА ТОГО ЧТО КАЖДОЕ СКАЧИВАНИЕ ФАЙЛА - ВЫДАЕТ ОШИБКУ NET::ERR_ABORTED (ПОТОМУ ЧТО СКАЧИВАТЬ НЕЛЬЗЯ, ТО И ТУТ ЗАДАЕТСЯ РЕНЕЙМ ФАЙЛОВ)
-            // Получаем список файлов во временной папке
-            const files = fs.readdirSync(tempDownloadPath);
-            console.log(`Files found in ${tempDownloadPath}: ${files}`);
-            // Перемещаем и переименовываем первый найденный файл
-            try {
-                if (files.length > 0) {
-                    const tempFilePath = path.join(tempDownloadPath, files[0]);
-                    fs.renameSync(tempFilePath, pdfSavePath);
-                    console.log(`File moved and renamed to ${pdfSavePath}`);
-                } else {
-                    console.error(`Error: No files found in ${tempDownloadPath}`);
-                }
-                // Удаляем временную папку
-                try {
-                    fs.rmdirSync(tempDownloadPath, { recursive: true });
-                    console.log(`Temporary folder deleted at ${path.dirname(tempDownloadPath)}`);
-                } catch (error) {
-                    console.log("Cannot remove dir: ", error)
-                }
-            } catch (error) {
-                console.log("Cannot rename file and remove dir: ", error)
-            }
         }
     }
-
     await browser.close();
 }
 
@@ -111,7 +83,21 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         behavior: 'allow',
         downloadPath: tempDownloadPath
     });
-    await page.goto(pdfLink, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto('about:blank'); // Переход на пустую страницу
+
+    await page.evaluate((pdfLink) => {
+        // Создание кнопки
+        const downloadButton = document.createElement('a');
+        downloadButton.href = pdfLink;
+        downloadButton.download = 'downloaded_file.pdf';
+        downloadButton.style.display = 'none'; // Скрыть кнопку
+        document.body.appendChild(downloadButton);
+
+        downloadButton.click();
+        downloadButton.remove();
+    }, pdfLink);
+
+    // Ожидание завершения скачивания
     await page.waitForTimeout(6000);
 }
 

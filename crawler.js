@@ -56,10 +56,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return result.join("; ");
           }
           
-        const affiliation = extractAuthorsAndInstitutions();
+        //const affiliation = extractAuthorsAndInstitutions();
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || "";
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        date = date.replaceAll(/[A-Za-z]/g, "")
         const authors = getMetaAttributes(['meta[name="dc.Contributor"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
@@ -73,8 +74,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         var first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content') || "";
         var last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content') || "";
+        const type = getMetaAttributes(['meta[name="dc.Type"]'], 'content') || "";
 
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        if (language === "en"){
+            language = "eng";
+        }
+        if (language === "ru"){
+            language = "rus";
+        }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content') || "";
         //ABSTRACT
@@ -83,11 +91,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '205': language, '184': mf_issn, '201': keywords};
+        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, '81': abstract, '197': first_page, '198': last_page, '205': language, '184': mf_issn, '201': keywords, '239': type};
+        if (!title)
+        {
+            metadata = false
+        }
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
+
+    if (!meta_data)
+    {
+        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        return;
+    }
+
     meta_data["217"] = url; //mf_url
     const data = meta_data;
 
@@ -114,7 +133,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         if (isOpenAccess) {
             try {
                 pdfLinksToDownload = await page.evaluate(() => {
-                    var pdfLinks = document.querySelector('.intent_pdf_link').href || '';
+                    var pdfLinks = document.querySelector(".intent_pdf_link")?document.querySelector(".intent_pdf_link").href : "";
                     return pdfLinks.replace("epdf", "pdf");
                     //"https://pubsonline.informs.org" + 
     
@@ -136,7 +155,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath) {
+async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -147,7 +166,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             browser = await puppeteer.launch({
                 args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -159,7 +178,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 50000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
                     await page.waitForTimeout(3000); // Задержка краулинга
 
@@ -172,7 +191,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = false);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
