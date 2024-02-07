@@ -31,8 +31,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') ?? document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText.trim().replaceAll("\n", " ") : "";
-        var date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') ?? document.querySelector('.CitationCoverDate')? document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)?document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)[0] : "" : "" || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";
+        const title = document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText.trim().replaceAll("\n", " ") : "";
+        var date = document.querySelector('.CitationCoverDate')? document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)?document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)[0] : "" : "" || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
@@ -41,23 +41,26 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         var authors = Array.from([...new Set(rawAuthors)]).join('; ')
 
 
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content')?? document.querySelector('.issue-item__doi')?.innerText?.replaceAll('https://doi.org/', '') ?? "";
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') ?? document.querySelector('.issue-item__detail .epub-section__title')? document.querySelector('.issue-item__detail .epub-section__title').innerText : "";
-        const mf_issn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
-        const mf_eissn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
+        const mf_doi = document.querySelector('.issue-item__doi')?document.querySelector('.issue-item__doi').innerText?.replaceAll('https://doi.org/', '') : "";
+        const mf_book = document.querySelector('.issue-item__detail .epub-section__title')? document.querySelector('.issue-item__detail .epub-section__title').innerText : "";
+        const mf_isbn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/ISBN:(\d+)/)?document.querySelector('.cover-image__details-extra').innerText.match(/ISBN:(\d+)/)[1] : "" : "";
         const publisher = document.querySelector('.publisher__name')? document.querySelector('.publisher__name').innerText : "";
-        const volume = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/)[1] : "" : "";
-        const issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
-        const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
-        const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
+        const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Pages (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Pages (\d+)–(\d+)/)[1] : "" : "";
+        const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Pages (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Pages (\d+)–(\d+)/)[2] : "" : "";
+        const pages = document.querySelector('.cover-pages')? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)[1] : "" : "";
         const type = getMetaAttributes(['meta[name="og:type"]'], 'content');
         var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
             return element !== "" && element !== " ";
           }).join("; ");
+        if (editors.includes("Author")){
+            editors = "";
+        }
+
+        const volume 
 
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
+        //const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
