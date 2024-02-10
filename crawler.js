@@ -32,7 +32,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
+        var date = document.querySelector('.article-date')? document.querySelector('.article-date').innerText.match(/\d{4}/)? document.querySelector('.article-date').innerText.match(/\d{4}/)[0] : "" : "" ?? getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').replaceAll("/","-");
+        if (date.length === 4){
+            date = `${date}-01-01`
+        }
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
@@ -55,11 +58,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // }
         // const abstract = abstractTexts.join(' ') || "";
         const abstract = document.querySelector('.abstract')? document.querySelector('.abstract').innerText.replaceAll('\n', ' ') : Array.from(document.querySelectorAll('div[data-widgetname="ArticleFulltext"] p')).map(elem => elem.innerText.replace("\n", " ")).join(' ') || "";
-        
+        const type = getMetaAttributes(['meta[name="og:type"]'], 'content');
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '239': type};
         if (!title)
         {
             metadata = false
