@@ -35,9 +35,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         if (!title){
             title = document.querySelector('.citation .citation__title')? document.querySelector('.citation .citation__title').innerText : "";
         }
-        var date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') ?? getMetaAttributes(['meta[name="citation_online_date"]'], 'content');
+        var date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content')
         if (date.length > 7){
             date = date.replaceAll("/","-")
+        }
+        if (!date){
+            let raw_year = document.querySelector('.epub-date')? document.querySelector('.epub-date').innerText.match(/\d{4}/)? document.querySelector('.epub-date').innerText.match(/\d{4}/)[0] : "" : "";
+            if (raw_year.length == 4){
+                date = `${raw_year}-01-01`;
+            }
         }
         var authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         if (!authors){
