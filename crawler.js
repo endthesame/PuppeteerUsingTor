@@ -114,7 +114,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     
             if (!isOpenAccess) {
                 console.log(`Skipping downloading PDF from ${url} due to lack of open access.`);
-                return; // Если нет open access, пропустить обработку URL
+                return true; // Если нет open access, пропустить обработку URL
             }
         }
 
