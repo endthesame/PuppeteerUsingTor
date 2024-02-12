@@ -31,7 +31,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content') ?? document.querySelector('.citation .citation__title')? document.querySelector('.citation .citation__title').innerText : "";;
+        var title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
+        if (!title){
+            title = document.querySelector('.citation .citation__title')? document.querySelector('.citation .citation__title').innerText : "";
+        }
         var date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') ?? getMetaAttributes(['meta[name="citation_online_date"]'], 'content');
         if (date.length > 7){
             date = date.replaceAll("/","-")
@@ -44,12 +47,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_eissn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
+        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
         const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
         const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        var language = getMetaAttributes(['meta[name="citation_language"]'], 'content') || "";
+        var language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
         if (language === 'en'){
             language = 'eng';
         }
