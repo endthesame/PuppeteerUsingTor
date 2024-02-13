@@ -31,6 +31,32 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
     
+        function extractAuthorsAndInstitutions() {
+            const authors = Array.from(document.querySelectorAll('meta[name="citation_author"]'));
+            const institutions = Array.from(document.querySelectorAll('meta[name="citation_author_institution"]'));
+          
+            const result = [];
+          
+            for (const author of authors) {
+                const authorName = author.getAttribute('content');
+                const authorInstitutions = [];
+            
+                // сопоставление авторов и аффиляции
+                let nextSibling = author.nextElementSibling;
+                while (nextSibling && nextSibling.tagName === 'META' && nextSibling.getAttribute('name') === 'citation_author_institution') {
+                authorInstitutions.push(nextSibling.getAttribute('content'));
+                nextSibling = nextSibling.nextElementSibling;
+                }
+                if (authorInstitutions.length != 0) {
+                    result.push(`${authorName} : ${authorInstitutions.join('!')}`);
+                }
+            }
+          
+            return result.join(";; ");
+          }
+          
+        const affiliation = extractAuthorsAndInstitutions();
+
         var title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
         if (!title){
             title = document.querySelector('.citation .citation__title')? document.querySelector('.citation .citation__title').innerText : "";
@@ -80,7 +106,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page, '144': affiliation};
         if (!title)
         {
             metadata = false
