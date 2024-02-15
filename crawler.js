@@ -160,7 +160,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.abstract-group .article-section__content')? document.querySelector('.abstract-group .article-section__content').innerText.replaceAll('\n', ' ')  : "";
+        let abstract = document.querySelector('.abstract-group .article-section__content')? document.querySelector('.abstract-group .article-section__content').innerText.replaceAll('\n', ' ')  : "";
+        if (!abstract){
+            abstract = document.querySelector('.article-section__abstract')? document.querySelector('.article-section__abstract').innerText.replace("Abstract","").trim() : "";
+        }
         var subtitle = "";
         var findSubtitle = document.querySelector('.article-row-right .publication-cover-info')? document.querySelector('.article-row-right .publication-cover-info').innerText : "";
         findSubtitle = findSubtitle.match(`${mf_book}.*`)? findSubtitle.match(`${mf_book}.*`)[0] : "";
@@ -170,7 +173,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '242': mf_book, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page, '144': affiliation, '207': editors, '240': mf_isbn, '241': mf_eisbn};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '242': mf_book, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page, '144': affiliation, '207': editors, '240': mf_isbn, '241': mf_eisbn, '212': subtitle};
         if (!title)
         {
             metadata = false
