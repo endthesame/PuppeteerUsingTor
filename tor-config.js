@@ -25,16 +25,16 @@ async function shouldChangeIP(page) {
     });
     const currentURL = page.url();
 
-    const isTitleAvailable = await page.evaluate(() => {
-        if (document.querySelector('.citation__title')){
-            return true;
-        } else {
-            return false;
-        }
-    });
+    // const isTitleAvailable = await page.evaluate(() => {
+    //     if (document.querySelector('.citation__title')){
+    //         return true;
+    //     } else {
+    //         return false;
+    //     }
+    // });
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || !isTitleAvailable) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
