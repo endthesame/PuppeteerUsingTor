@@ -93,11 +93,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        const metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle};
+        if (!title)
+        {
+            metadata = false
+        }
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
     }, log);
+
+    if (!meta_data)
+    {
+        console.log(`Skipping from ${url} due to lack of metadata (title).`);
+        return;
+    }
+
     meta_data["217"] = url; //mf_url
     const data = meta_data;
 
@@ -111,7 +122,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     fs.writeFileSync(jsonFilePath, jsonData);
 
     if (downloadPDFmark) {
-        let isOpenAccess = false;
+        let isOpenAccess = true;
         if (checkOpenAccess) {
             isOpenAccess = await checkAccess(page);
     
@@ -123,9 +134,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector('.article-pdfLink')? document.querySelector('.article-pdfLink').href : "";
-                return pdfLinks.replace("epdf", "pdf");
-                //"https://pubsonline.informs.org" + 
+                var pdfLinks = document.querySelector('.pdf')?document.querySelector('.pdf').href : "";
+                if (!pdfLinks){
+                    return null;
+                }
+                return pdfLinks.replace("reader", "pdf").replace("epdf", "pdf");
 
                 // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
@@ -134,10 +147,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             });
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
-
-            const pdfFileName = baseFileName + '.pdf';
-            const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
-            if (pdfLinksToDownload) {
+            if (pdfLinksToDownload){
+                const pdfFileName = baseFileName + '.pdf';
+                const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
                 fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
             }
         }
