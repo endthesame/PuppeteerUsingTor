@@ -108,7 +108,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".pdf-download")?document.querySelector(".pdf-download").href : "";
+                var pdfLinks = document.querySelector(".single__download > a")?document.querySelector(".single__download > a").href : "";
                 if (!pdfLinks){
                     return null;
                 }
