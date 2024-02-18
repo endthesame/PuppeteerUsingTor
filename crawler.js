@@ -32,20 +32,25 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content') || "";
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') || getMetaAttributes(['meta[name="citation_online_date"]'], 'content') || getMetaAttributes(['meta[name="citation_year"]'], 'content');
+        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content') || getMetaAttributes(['meta[name="citation_year"]'], 'content');
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
         const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || getMetaAttributes(['meta[name="author"]'], 'content');
         const mf_doi = document.querySelector('#doi a')? document.querySelector('#doi a').href.match(/https:\/\/(.*)/)? document.querySelector('#doi a').href.match(/https:\/\/doi.org\/(.*)/)[1] : "" : "";
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
-        const mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content') || getMetaAttributes(['meta[name="prism.issn"]'], 'content');
-        const mf_eissn = getMetaAttributes(['meta[name="prism.eIssn"]'], 'content') || "";
+        const mf_book = getMetaAttributes(['meta[name="citation_inbook_title"]'], 'content')|| document.querySelector('.titre-revue')? document.querySelector('.titre-revue').innerText : "";
+        const mf_isbn = getMetaAttributes(['meta[name="citation_isbn"]'], 'content');
         const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content') || "";
+        // const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
+        // const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content') || "";
         const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content') || "";
         const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content') || "";
-        const language = getMetaAttributes(['meta[name="citation_language"]'], 'content') || "";
+        let language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
+        if (language == 'en'){
+            language = 'eng';
+        }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="citation_keywords"]'], 'content') || "";
+        //const keywords = getMetaAttributes(['meta[name="citation_keywords"]'], 'content') || "";
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -54,12 +59,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.corps')? document.querySelector('.corps').innerText.trim().replaceAll('\n', ' ') : "";
+        //const abstract = document.querySelector('.corps')? document.querySelector('.corps').innerText.trim().replaceAll('\n', ' ') : "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '201': keywords, '235': publisher, '205': language};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '235': publisher, '205': language, '242': mf_book, '240': mf_isbn};
         if (!title)
         {
             metadata = false
@@ -99,8 +104,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         }
 
         if (isOpenAccess) {
-            pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector('#link-pdf .name')? document.querySelector('#link-pdf .name').innerText === "Download"? document.querySelector('meta[name="citation_pdf_url"]')? document.querySelector('meta[name="citation_pdf_url"]').content : "" : "" : "";
+            pdfLinksToDownload = await page.evaluate((url) => {
+                var pdfLinks = document.querySelector('#link-pdf .name')? document.querySelector('#link-pdf .name').innerText === "Download"? url : "" : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -110,7 +115,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
                 // .map(a => a.href.replace("reader", "pdf") + "?download=true");
                 // return pdfLinks;
-            });
+            }, url);
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
             if (pdfLinksToDownload){
@@ -132,6 +137,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
@@ -140,7 +146,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
-            await page.setViewport({ width: 1200, height: 800 });
+            await page.setViewport({ width: 1280, height: 720 });
             await page.goto(remainingLinks[0].trim(), { waitUntil: 'networkidle2', timeout: 30000 });
             await page.waitForTimeout(15000);
 

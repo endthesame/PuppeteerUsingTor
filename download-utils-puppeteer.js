@@ -30,8 +30,8 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     let browser = await puppeteer.launch({
-        args: ['--proxy-server=127.0.0.1:8118'],
-        headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+        //args: ['--proxy-server=127.0.0.1:8118'],
+        headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
     });
 
     for (const link of links) {
@@ -39,6 +39,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             continue;
         }
         let page = await browser.newPage();
+        await page.setViewport({ width: 1280, height: 720 });
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
@@ -70,8 +71,8 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             await browser.close();
             await new Promise(resolve => setTimeout(resolve, 20000));
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                //args: ['--proxy-server=127.0.0.1:8118'],
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
         }
     }
@@ -83,19 +84,16 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         behavior: 'allow',
         downloadPath: tempDownloadPath
     });
-    await page.goto('about:blank'); // Переход на пустую страницу
-
-    await page.evaluate((pdfLink) => {
+    await page.setViewport({ width: 1280, height: 720 });
+    await page.goto(pdfLink); // Переход на пустую страницу
+    await page.evaluate(() => {
         // Создание кнопки
-        const downloadButton = document.createElement('a');
-        downloadButton.href = pdfLink;
-        downloadButton.download = 'downloaded_file.pdf';
-        downloadButton.style.display = 'none'; // Скрыть кнопку
-        document.body.appendChild(downloadButton);
-
-        downloadButton.click();
-        downloadButton.remove();
-    }, pdfLink);
+        const downloadButton = document.querySelector("#link-pdf a");
+        if (downloadButton){
+            downloadButton.click();
+            downloadButton.remove();
+        }
+    });
 
     // Ожидание завершения скачивания
     await page.waitForTimeout(6000);
