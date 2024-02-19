@@ -60,11 +60,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                 const authorInfo = `${authorName}: ${affiliations.join('!')};; `;
                 
                 // Добавляем информацию об авторе к результату
-                result += authorInfo;
+                if (affiliations.length >=1){
+                    result += authorInfo;
+                }
             });
 
             // Удаляем последний символ ";;" из результата
-            result = result.slice(0, -3);
+            if (result.length > 4){
+                result = result.slice(0, -3);
+            }
             return result;
         }
         // function extractAuthorsAndInstitutions() {
