@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer-extra');
+const { TimeoutError } = require('puppeteer');
 const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
@@ -18,11 +19,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
                 directory_upgrade: true,
                 default_directory:  pdfFolderPath,
                 extensions_to_open: "applications/pdf",
-            },
-            plugins: {
-                always_open_pdf_externally: true,
-                plugins_disabled: ["Chrome PDF Viewer"],
-            },
+            }
         }
     }));
 
@@ -30,16 +27,26 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     let browser = await puppeteer.launch({
+        //product: 'firefox',
+        //args: ['--no-sandbox', '--disable-setuid-sandbox'],
         //args: ['--proxy-server=127.0.0.1:8118'],
         headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
     });
+    let page;
+    let newPage = await browser.newPage();
+    await newPage.setViewport({ width: 1280, height: 720 });
+    await newPage.goto('https://www.cairn-int.info/50-years-of-financial-crises--9782738144683-page-9.htm', { waitUntil: 'networkidle2', timeout: 50000 });
+    await newPage.waitForTimeout(8000);
+    await newPage.close();
 
     for (const link of links) {
         if (!link.trim()) {
             continue;
         }
-        let page = await browser.newPage();
+        page = await browser.newPage();
         await page.setViewport({ width: 1280, height: 720 });
+        // await page.goto('https://www.cairn-int.info/50-years-of-financial-crises--9782738144683-page-9.htm', { waitUntil: 'networkidle2', timeout: 50000 });
+        // await page.waitForTimeout(8000);
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
@@ -68,12 +75,6 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             }
         } catch (error) {
             log(`Cant download PDF file: ${error}`)
-            await browser.close();
-            await new Promise(resolve => setTimeout(resolve, 20000));
-            browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
-            });
         }
     }
     await browser.close();
@@ -84,8 +85,8 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         behavior: 'allow',
         downloadPath: tempDownloadPath
     });
-    await page.setViewport({ width: 1280, height: 720 });
-    await page.goto(pdfLink); // Переход на пустую страницу
+    //await page.setViewport({ width: 1280, height: 720 });
+    await page.goto(pdfLink, { waitUntil: 'networkidle2', timeout: 50000 }); // Переход на пустую страницу
     await page.evaluate(() => {
         // Создание кнопки
         const downloadButton = document.querySelector("#link-pdf a");
@@ -96,7 +97,7 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
     });
 
     // Ожидание завершения скачивания
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(4000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };
