@@ -25,19 +25,36 @@ async function shouldChangeIP(page) {
     });
     const currentURL = page.url();
 
-    const error403 = await page.evaluate(() => {
-        if (document.querySelector('h1').textContent === "403 Forbidden"){
-            return true
-        }
-        else {
-            return false
+    const isTitleAvailable = await page.evaluate(() => {
+        if (document.querySelector('meta[name="citation_title"]')){
+            return true;
+        } else {
+            return false;
         }
     });
 
+    const isErrorOnPage = await page.evaluate(() => {
+        if (document.querySelector('.errorPage')){
+            return true;
+        } else {return false}
+    });
+
+    const actionError = await page.evaluate(() => {
+        return document.querySelector('.errorMessage')? document.querySelector('.errorMessage').innerText : "";
+    })
+    if (actionError == "Your action has resulted in an error. Please click the Back button in your browser and try again."){
+        return false;
+    }
+    const pageNotFind = await page.evaluate(() => {
+        return document.querySelector('.error-title')? document.querySelector('.error-title').innerText : ""; 
+    });
+
+    if (pageNotFind == "The page youre looking for cannot be found."){
+        return false;
+    }
+
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || error403) {
-        log('Changing IP address...');
-        await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || isErrorOnPage || !isTitleAvailable) {
         await changeTorIp();
         log('IP address changed successfully.');
         await getCurrentIP();
