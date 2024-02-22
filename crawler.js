@@ -86,45 +86,34 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return result.join(";; ");
           }
           
-        const affiliation = extractAuthorsAndInstitutions();
+        //const affiliation = extractAuthorsAndInstitutions();
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        var date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').replaceAll("/","-") || getMetaAttributes(['meta[name="citation_online_date"]'], 'content').replaceAll("/","-");
+        const title = document.querySelector('.col-12.col-md-8 .text-uppercase')? document.querySelector('.col-12.col-md-8 .text-uppercase').innerText : "";
+        var date = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/, (\d{4}),/)? document.querySelector('.container h1').innerText.match(/, (\d{4}),/)[1] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        const authors = Array.from(document.querySelectorAll('.text-center.mx-5 i')).map(elem=>elem.innerText).join("; ") || "";
         // var rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
         // var authors = Array.from([...new Set(rawAuthors)]).join('; ')
 
 
-        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content').replace("doi:", "");
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        let issns = Array.from(document.querySelectorAll('meta[name="citation_issn"]')).map(elem => elem.content)
-        let mf_issn = document.querySelector('meta[name="prism.issn"]')? document.querySelector('meta[name="prism.issn"]').content : "";
-        let mf_eissn = document.querySelector('meta[name="prism.eIssn"]')? document.querySelector('meta[name="prism.eIssn"]').content : "";
-        if (issns.length == 2 && !mf_eissn){
-            mf_eissn = issns[1];
-        }
-        if (issns.length == 2 && !mf_issn){
-            mf_eissn = issns[0];
-        }
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        const type = getMetaAttributes(['meta[name="citation_article_type"]'], 'content');
+        const mf_doi = document.querySelector('.list-inline')? document.querySelector('.list-inline').innerText.match(/DOI:\s?(10..*)/)? document.querySelector('.list-inline').innerText.match(/DOI:\s?(10..*)/)[1] : "" : ""
+        const mf_journal = 'Кинетика и катализ'
+        let mf_issn = '0453-8811';
+        //const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
+        const volume = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/T. (\d+),/)? document.querySelector('.container h1').innerText.match(/T. (\d+),/)[1] : "" : "";
+        const issue = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/№ (\d+)/)? document.querySelector('.container h1').innerText.match(/№ (\d+)/)[1] : "" : "";
+        const first_page = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/стр. (\d+)-(\d+)/)? document.querySelector('.container h1').innerText.match(/стр. (\d+)-(\d+)/)[1] : "" : "";
+        const last_page = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/стр. (\d+)-(\d+)/)? document.querySelector('.container h1').innerText.match(/стр. (\d+)-(\d+)/)[2] : "" : "";
+        //const type = getMetaAttributes(['meta[name="citation_article_type"]'], 'content');
         // var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
         //     return element !== "" && element !== " ";
         //   }).join("; ");
 
-        let language = getMetaAttributes(['meta[name="citation_language"]'], 'content') || "";
-        if (language == 'en'){
-            language = 'eng';
-        }
+        let language = 'rus'
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="citation_keyword"]'], 'content');
+        const keywords = document.querySelector('#abstract .p-2')? document.querySelector('#abstract .p-2').innerText.match(/КЛЮЧЕВЫЕ СЛОВА: (.*)/)? document.querySelector('#abstract .p-2').innerText.match(/КЛЮЧЕВЫЕ СЛОВА: (.*)/)[1] : "" : "";
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -133,21 +122,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        let abstract = '';
-        let rawP = Array.from(document.querySelectorAll('#head p')).map(elem => elem.innerText)
-        for(let i = 0; i < rawP.length; i++){
-            if (rawP[i] == 'Abstract'){
-                if (i +1 <= rawP.length){
-                    abstract = rawP[i+1].trim().replaceAll("\n", " ");
-                    break;
-                }
-            }
-        }
+        let abstract = document.querySelector('.abstract')? document.querySelector('.abstract').innerText : "";
         
         //Type
-        const orcids = getOrcids() || "";
+        //const orcids = getOrcids() || "";
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '235': publisher, '239': type, '201': keywords, '184': mf_issn, '185': mf_eissn, '234': orcids, '144': affiliation, '205': language};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '201': keywords, '184': mf_issn, '205': language};
         if (!title)
         {
             metadata = false
@@ -188,7 +168,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = Array.from(document.querySelectorAll('.article_doc a')).map(elem => elem.href).filter(elem => elem.includes("/pdf/")) ? Array.from(document.querySelectorAll('.article_doc a')).map(elem => elem.href).filter(elem => elem.includes("/pdf/"))[0] : "";
+                var pdfLinks = document.querySelector('.link-article')? document.querySelector('.link-article').href.match(/.pdf/)? document.querySelector('.link-article').href.match(/.*.pdf/)[0] : "" : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -220,7 +200,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
+                //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -234,7 +214,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                     await page.waitForTimeout(3000); // Задержка краулинга
 
