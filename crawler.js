@@ -99,8 +99,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
 
         const mf_doi = document.querySelector('.list-inline')? document.querySelector('.list-inline').innerText.match(/DOI:\s?(10..*)/)? document.querySelector('.list-inline').innerText.match(/DOI:\s?(10..*)/)[1] : "" : ""
-        const mf_journal = 'Кинетика и катализ'
-        let mf_issn = '0453-8811';
+        const mf_journal = 'Журнал органической химии'
+        let mf_issn = '0514-7492';
         //const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
         const volume = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/T. (\d+),/)? document.querySelector('.container h1').innerText.match(/T. (\d+),/)[1] : "" : "";
         const issue = document.querySelector('.container h1')? document.querySelector('.container h1').innerText.match(/№ (\d+)/)? document.querySelector('.container h1').innerText.match(/№ (\d+)/)[1] : "" : "";
