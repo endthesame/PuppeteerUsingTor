@@ -30,31 +30,40 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // }
             return values.join('; ');
         };
-
-        let firstPage, lastPage, year;
-
-        const tocHeadings = document.querySelectorAll('.article__tocHeading');
-
-        tocHeadings.forEach(heading => {
-            const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
-            [_, firstPage, lastPage, year] = match.map(item => item || '');
-        });
     
-        const title = document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText : "";
-        const date = year || "";
-        const authors = Array.from(document.querySelectorAll('a.author-name')).map(elem => {return elem.title? elem.title : ""} ).join('; ') || "";
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.epub-section__doi__text')? document.querySelector('.epub-section__doi__text').href.replace('https://doi.org/', "") : "" || "";
-        const mf_book = document.querySelector('#pane-pcw-details .meta a')? document.querySelector('#pane-pcw-details .meta a').innerText : "";
-        //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
-        //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
-        //const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
-        //const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
-        //const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
-        const first_page = firstPage || "";
-        const last_page = lastPage || "";
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        const title = getMetaAttributes(['meta[name="og:title"]'], 'content') || document.querySelector('.article_header-title')? document.querySelector('.article_header-title').innerText.trim().replaceAll("\n", " ") : "";
+        var date = document.querySelector('.pub-date-value')? document.querySelector('.pub-date-value').innerText.match(/\d{4}/)?document.querySelector('.pub-date-value').innerText.match(/\d{4}/)[0] : "" : "";
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
+        // const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        var rawAuthors = Array.from(document.querySelectorAll('.hlFld-ContribAuthor')).map(elem => elem.innerText)
+        var authors = Array.from([...new Set(rawAuthors)]).join('; ')
+
+        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
+        const mf_book = document.querySelector('.article_header-book-title')? document.querySelector('.article_header-book-title').innerText : "";
+        const mf_isbn = document.querySelector('.article_header-book-isbn')? document.querySelector('.article_header-book-isbn').innerText.match(/ISBN13: (\d{13})/)? document.querySelector('.article_header-book-isbn').innerText.match(/ISBN13: (\d{13})/)[1] : "" : "";
+        const mf_eisbn = document.querySelector('.article_header-book-isbn')? document.querySelector('.article_header-book-isbn').innerText.match(/eISBN: (\d{13})/)? document.querySelector('.article_header-book-isbn').innerText.match(/eISBN: (\d{13})/)[1] : "" : "";
+        const publisher = document.querySelector('.NLM_publisher-name')? document.querySelector('.NLM_publisher-name').innerText : "";
+        const first_page = document.querySelector('.pageRange')? document.querySelector('.pageRange').innerText.match(/(\d+)-(\d+)/)? document.querySelector('.pageRange').innerText.match(/(\d+)-(\d+)/)[1] : "" : "";
+        const last_page = document.querySelector('.pageRange')? document.querySelector('.pageRange').innerText.match(/(\d+)-(\d+)/)? document.querySelector('.pageRange').innerText.match(/(\d+)-(\d+)/)[2] : "" : "";
+        //const pages = document.querySelector('.cover-pages')? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)[1] : "" : "";
+        const type = document.querySelector('.chapter-number')? document.querySelector('.chapter-number').innerText : "";
+        // var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
+        //     return element !== "" && element !== " ";
+        //   }).join("; ");
+        // if (editors.includes("Author")){
+        //     editors = "";
+        // }
+
+        //const volume 
+
+        let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        if (language == "EN"){
+            language = "eng";
+        }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = Array.from(document.querySelectorAll('div#keywords > ul > li')? document.querySelectorAll('div#keywords > ul > li') : "").map(elem => {return elem.innerText? elem.innerText : ""} ).join('; ') || "";
+        const keywords = Array.from(document.querySelectorAll('.keyword')).map(elem => elem.innerText).join("; ");
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -63,12 +72,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.NLM_abstract')? document.querySelector('.NLM_abstract').innerText.replace("Abstract:", "").replaceAll("\n", " ").trim() : "";
+        const abstract = document.querySelector('#abstractBox')? document.querySelector('#abstractBox').innerText.trim().replaceAll("\n", " ") : "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "242": mf_book, "205": language, "201": keywords, '81': abstract, '197': first_page, '198': last_page};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page,  '81': abstract, '235': publisher, '239': type, '242': mf_book, '240': mf_isbn, '241': mf_eisbn, '205': language, '201': keywords};
         if (!title)
         {
             metadata = false
@@ -108,7 +117,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".single__download > a")?document.querySelector(".single__download > a").href : "";
+                var pdfLinks = document.querySelector(".pdf-button")?document.querySelector(".pdf-button").href : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -149,8 +158,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
             page = await browser.newPage();
 
             await page.setViewport({
-                width: 1400,
-                height: 800,
+                width: 1280,
+                height: 720,
                 deviceScaleFactor: 1,
               });
 
@@ -163,7 +172,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 try {
                     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    //await page.waitForTimeout(3000); // Задержка краулинга
 
                     // if (await shouldChangeIP(page)) {
                     //     log(`Retrying after changing IP.`);
