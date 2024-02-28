@@ -98,7 +98,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const affiliation = extractAuthorsAndInstitutions();
     
         const title = getMetaAttributes(['meta[name="citation_title"]'], 'content') || "";
-        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').replaceAll("/","-") || "";
+        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').replaceAll("/","-");
+        if (!date){
+            date = document.querySelector('.book-info__publication-date')? document.querySelector('.book-info__publication-date').innerText.match(/(\d{4})/)? document.querySelector('.book-info__publication-date').innerText.match(/(\d{4})/)[1] : "" : "";
+        }
         if (date.length >= 4){
             date = date.match(/\d{4}/)? `${date.match(/\d{4}/)[0]}-01-01` : date;
         }
@@ -160,8 +163,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+
+        let abstract = document.querySelector('#ContentTab .abstract')? document.querySelector('#ContentTab .abstract').innerText.trim().replaceAll('\n',' ') : "";
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle, '207': editors, '205': language, '144': affilation};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle, '207': editors, '205': language, '144': affilation, '81': abstract};
         if (!title)
         {
             metadata = false
@@ -249,7 +254,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 try {
                     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 50000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(1000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
