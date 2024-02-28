@@ -131,6 +131,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             language = "";
         }
 
+        let first_page = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.match(/(\d+) - (\d+):/)? document.querySelector('.chapter-title').innerText.match(/(\d+) - (\d+):/)[1] : "" : "";
+        let last_page = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.match(/(\d+) - (\d+):/)? document.querySelector('.chapter-title').innerText.match(/(\d+) - (\d+):/)[2] : "" : "";
+
         // let authorsStringAffilation = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"author":(\[.*\]),/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"author":(\[.*\]),/)[1] : "" : "";
         // let authorsStringFormattedAffulation = ""
         // if (authorsStringAffilation != ""){
@@ -166,7 +169,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         let abstract = document.querySelector('#ContentTab .abstract')? document.querySelector('#ContentTab .abstract').innerText.trim().replaceAll('\n',' ') : "";
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle, '207': editors, '205': language, '144': affilation, '81': abstract};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "242": mf_book, "176": volume, '240': mf_isbn, '241': mf_eisbn, '239': typeOfArticle, '212': subtitle, '207': editors, '205': language, '144': affilation, '81': abstract, '197': first_page, '198': last_page};
         if (!title)
         {
             metadata = false
