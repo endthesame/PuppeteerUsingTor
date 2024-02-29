@@ -49,11 +49,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         let last_page = '';
 
         if (pagesPath.length >= 1){
-            let pages = pagesPath[0].match(/pp. (\d+)-(\d+)/) || pagesPath[0].match(/pp. (\d+) \(/);
+            let pages = pagesPath[0].match(/pp. (\d+)-(\d+)/) || pagesPath[0].match(/pp. (\d+) \(/) || [];
             if (pages.length >= 3){
                 first_page = pages[1];
             	last_page = pages[2];
-            } else{
+            } else if(pages.length == 2){
                 first_page = pages[1];
             	last_page = pages[1];
             }
