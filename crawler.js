@@ -35,30 +35,42 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || "";
+        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || document.querySelector('.article__tocHeading')? document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)?document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)[1] : "" : "";
+        let issn = '';
+        let eissn = '';
         //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
         //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
         const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
         const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
         const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
-        // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
-        // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        //PAGES
+        let pagesPath = Array.from(document.querySelectorAll('.article__tocHeading')).map(elem => elem.innerText).filter(elem => elem.includes("pp."));
+        let first_page = '';
+        let last_page = '';
+
+        if (pagesPath.length >= 1){
+            let pages = pagesPath[0].match(/pp. (\d+)-(\d+)/);
+            first_page = pages[1];
+            last_page = pages[2];
+        }
+
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content') || "";
         //ABSTRACT
-        const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
-        const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        const abstractTexts = [];
-        for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
-            abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
-        }
-        const abstract = abstractTexts.join(' ') || "";
+        // const abstractXPath = '//*[@class="abstractSection abstractInFull"]/p/text()';
+        // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        // const abstractTexts = [];
+        // for (let i = 0; i < abstractSnapshot.snapshotLength; i++) {
+        //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
+        // }
+        // const abstract = abstractTexts.join(' ') || "";
+        let abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll('\n', ' ') : "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '184': issn, '185': eissn};
         if (!title)
         {
             metadata = false
