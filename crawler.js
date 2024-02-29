@@ -49,9 +49,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         let last_page = '';
 
         if (pagesPath.length >= 1){
-            let pages = pagesPath[0].match(/pp. (\d+)-(\d+)/);
-            first_page = pages[1];
-            last_page = pages[2];
+            let pages = pagesPath[0].match(/pp. (\d+)-(\d+)/) || pagesPath[0].match(/pp. (\d+) \(/);
+            if (pages.length >= 3){
+                first_page = pages[1];
+            	last_page = pages[2];
+            } else{
+                first_page = pages[1];
+            	last_page = pages[1];
+            }
         }
 
         const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
