@@ -70,7 +70,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '184': issn, '185': eissn};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "235": publisher, "232": mf_journal, "176": volume, "208": issue, "205": language, "201": keywords, '81': abstract, '184': issn, '185': eissn, '197': first_page, '198': last_page};
         if (!title)
         {
             metadata = false
