@@ -32,7 +32,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
 
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || "";
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        let date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        if (date == ""){
+            date = document.querySelector('.article__breadcrumbs')? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)[1] : "" : "";
+        }
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || document.querySelector('.article__tocHeading')? document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)?document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)[1] : "" : "";
@@ -41,8 +47,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
         //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
         const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
-        const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
-        const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
+        const volume = (document.querySelector('.details-tab .meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
+        const issue = (document.querySelector('.details-tab .meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
         //PAGES
         let pagesPath = Array.from(document.querySelectorAll('.article__tocHeading')).map(elem => elem.innerText).filter(elem => elem.includes("pp."));
         let first_page = '';
@@ -59,7 +65,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             }
         }
 
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        if (language == 'en'){
+            language = 'eng';
+        }
+        if (language == 'ru'){
+            language = 'rus';
+        } 
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content') || "";
         //ABSTRACT
