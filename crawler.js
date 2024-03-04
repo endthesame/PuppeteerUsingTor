@@ -30,13 +30,41 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // }
             return values.join('; ');
         };
+
+        // Функция для извлечения текста из элемента без span
+        function getTextFromElementWithoutSpan(elem) {
+            let text = '';
+            elem.childNodes.forEach(node => {
+                if (node.nodeName !== 'SPAN') {
+                    text += node.textContent;
+                }
+            });
+            return text.trim();
+        }
     
-        const title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
-        const authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') || Array.from(document.querySelectorAll('.authors .al-author-name')).map(elem => elem.innerText).join('; ');
-        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
-        const mf_book = document.querySelector('.book-info__meta .book-info__title') ? document.querySelector('.book-info__meta .book-info__title').innerText.replaceAll('\n', " ") : "";
-        const book_series = document.querySelector('.book-info__meta .book-series') ? document.querySelector('.book-info__meta .book-series').innerText.replaceAll('\n', " ") : "";
+        let title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
+        if (title == ""){
+            title = getMetaAttributes(['meta[property="og:title"]'], 'content');
+            if (title == ""){
+                title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText : "";
+            }
+        }
+        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
+        if (date == ""){
+            date = document.querySelector('.chapter-publication-date')? document.querySelector('.chapter-publication-date').innerText : "";
+        }
+        date = `${date.match(/\d{4}/)[0]}-01-01`;
+        let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        if (authors == ""){
+            authors = Array.from(document.querySelectorAll('.authors .al-author-name')).map(elem => elem.innerText).join('; ')
+        }
+        let mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.chapter-doi-link')? document.querySelector('.chapter-doi-link').innerText.replace("https://doi.org/", "") : "";
+        }
+        const h1Element = document.querySelector('.book-info__meta .book-info__title');
+        const mf_book = getTextFromElementWithoutSpan(h1Element).trim().replaceAll('\n', '');
+        const subtitle = document.querySelector(".book-info__title .subtitle")?document.querySelector(".book-info__title .subtitle").textContent.trim().replaceAll('\n', '') : "";
         const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
         const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
@@ -59,8 +87,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': book_series, '241':mf_eisbn, '239': type };
-        if (!mf_book)
+        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type };
+        if (!mf_book || !title)
         {
             metadata = false
         }
