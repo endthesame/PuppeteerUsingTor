@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -79,7 +79,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page,  '81': abstract, '235': publisher, '239': type, '242': mf_book, '240': mf_isbn, '241': mf_eisbn, '205': language, '201': keywords};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page,  '81': abstract, '235': publisher, '239': type, '232': mf_journal, '240': mf_isbn, '241': mf_eisbn, '205': language, '201': keywords};
         if (!title)
         {
             metadata = false
@@ -106,6 +106,17 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonFilePath = path.join(jsonFolderPath, jsonFileName);
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
+
+    (async () => {
+        const htmlSource = await page.content();
+        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+          if (err) {
+            console.error('Error saving HTML to file:', err);
+          } else {
+            console.log('HTML saved to file successfully');
+          }
+        });
+      })();
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
@@ -142,7 +153,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -179,7 +190,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
