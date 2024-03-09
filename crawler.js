@@ -31,18 +31,24 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             return values.join('; ');
         };
     
-        const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content') || document.querySelector('.article_header-title')? document.querySelector('.article_header-title').innerText.trim().replaceAll("\n", " ") : "";
+        let title = getMetaAttributes(['meta[name="dc.Title"]'], 'content')
+        if (title == ""){
+            title = document.querySelector('.article_header-title')? document.querySelector('.article_header-title').innerText.trim().replaceAll("\n", " ") : "";
+        }
         var date = document.querySelector('.pub-date-value')? document.querySelector('.pub-date-value').innerText.match(/\d{4}/)?document.querySelector('.pub-date-value').innerText.match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
         let authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
-        if (!authors){
+        if (authors == ""){
             let rawAuthors = Array.from(document.querySelectorAll('.hlFld-ContribAuthor')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
 
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
+        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content')
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
+        }
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_isbn = document.querySelector('.article_header-book-isbn')? document.querySelector('.article_header-book-isbn').innerText.match(/ISBN13: (\d{13})/)? document.querySelector('.article_header-book-isbn').innerText.match(/ISBN13: (\d{13})/)[1] : "" : "";
         const mf_eisbn = document.querySelector('.article_header-book-isbn')? document.querySelector('.article_header-book-isbn').innerText.match(/eISBN: (\d{13})/)? document.querySelector('.article_header-book-isbn').innerText.match(/eISBN: (\d{13})/)[1] : "" : "";
