@@ -45,7 +45,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
 
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content')
+        const mf_doi = document.querySelector('meta[scheme="doi"]')? document.querySelector('meta[scheme="doi"]').content : "";
         if (mf_doi == ""){
             mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
         }
