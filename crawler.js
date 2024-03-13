@@ -236,7 +236,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 try {
                     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(2000); // Задержка краулинга
 
                     // if (await shouldChangeIP(page)) {
                     //     log(`Retrying after changing IP.`);
