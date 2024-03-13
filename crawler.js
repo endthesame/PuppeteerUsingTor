@@ -31,17 +31,72 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return values.join('; ');
         };
 
-        let firstPage, lastPage, year;
+        function romanToNumberOrReturn(input) {
+            const romanNumerals = {
+                'I': 1,
+                'V': 5,
+                'X': 10,
+                'L': 50,
+                'C': 100,
+                'D': 500,
+                'M': 1000,
+                'i': 1,
+                'v': 5,
+                'x': 10,
+                'l': 50,
+                'c': 100,
+                'd': 500,
+                'm': 1000
 
-        const tocHeadings = document.querySelectorAll('.article__tocHeading');
+            };
+        
+            // Проверка, является ли входное значение римской цифрой
+            function isRoman(input) {
+                return /^[IVXLCDMivxlcdm]+$/i.test(input);
+            }
+        
+            // Если входное значение не является римской цифрой, возвращаем его без изменений
+            if (!isRoman(input)) {
+                return input;
+            }
+        
+            let result = 0;
+            let prevValue = 0;
+        
+            // Преобразование римской цифры в число
+            for (let i = input.length - 1; i >= 0; i--) {
+                let currentValue = romanNumerals[input[i]];
+        
+                if (currentValue < prevValue) {
+                    result -= currentValue;
+                } else {
+                    result += currentValue;
+                }
+        
+                prevValue = currentValue;
+            }
+        
+            // Преобразование числа в строку и возвращение результата
+            return result.toString();
+        }
 
-        tocHeadings.forEach(heading => {
-            const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
-            [_, firstPage, lastPage, year] = match.map(item => item || '');
-        });
+        // let firstPage, lastPage, year;
+
+        // const tocHeadings = document.querySelectorAll('.article__tocHeading');
+
+        // tocHeadings.forEach(heading => {
+        //     const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
+        //     [_, firstPage, lastPage, year] = match.map(item => item || '');
+        // });
     
         const title = document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText : "";
-        const date = year || "";
+        let date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
+        if (date == ""){
+            date = document.querySelector('.article__breadcrumbs')? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)[1] : "" : "";
+        }
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
         const authors = Array.from(document.querySelectorAll('a.author-name')).map(elem => {return elem.title? elem.title : ""} ).join('; ') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.epub-section__doi__text')? document.querySelector('.epub-section__doi__text').href.replace('https://doi.org/', "") : "" || "";
         const mf_book = document.querySelector('#pane-pcw-details .meta a')? document.querySelector('#pane-pcw-details .meta a').innerText : "";
@@ -50,9 +105,27 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
         //const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
         //const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
-        const first_page = firstPage || "";
-        const last_page = lastPage || "";
-        const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        let pagesPath = Array.from(document.querySelectorAll('.article__tocHeading')).map(elem => elem.innerText).filter(elem => elem.includes("pp."));
+        let first_page = '';
+        let last_page = '';
+
+        if (pagesPath.length >= 1){
+            let pages = pagesPath[0].match(/pp. (\S+)-(\S+)/) || pagesPath[0].match(/pp. (\S+) \(/) || [];
+            if (pages.length >= 3){
+                first_page = romanToNumberOrReturn(pages[1]);
+              last_page = romanToNumberOrReturn(pages[2]);
+            } else if(pages.length == 2){
+                first_page = romanToNumberOrReturn(pages[1]);
+              last_page = romanToNumberOrReturn(pages[1]);
+            }
+        }
+        let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        if (language == "en"){
+            language = "eng";
+        }
+        if (language == "ru"){
+            language = "rus";
+        } 
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = Array.from(document.querySelectorAll('div#keywords > ul > li')? document.querySelectorAll('div#keywords > ul > li') : "").map(elem => {return elem.innerText? elem.innerText : ""} ).join('; ') || "";
         //ABSTRACT
