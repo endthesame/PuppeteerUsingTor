@@ -41,7 +41,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         }
         const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content') || "";
         const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || "";
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content') || document.querySelector('.article__tocHeading')? document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)?document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)[1] : "" : "";
+        let mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content')
+        if (mf_journal == ""){
+            // !!!!!!!!!! НЕПРАВИЛЬНО ИЗВЛЕКАЕТ ЖУРНАЛ ЕСЛИ ПОПАДАЕТ СЮДА, ПРОПУСКАЕТ ( - &  И ПРОЧИЕ СИМВОЛЫ
+            mf_journal = document.querySelector('.article__tocHeading')? document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)?document.querySelector('.article__tocHeading').innerText.match(/([a-zA-Z\s]+)|/)[1] : "" : "";
+        }
         let issn = '';
         let eissn = '';
         //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
