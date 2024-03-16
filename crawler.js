@@ -79,6 +79,28 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             // Преобразование числа в строку и возвращение результата
             return result.toString();
         }
+
+        function getBookSeries(mf_book) {
+            let regexpVolume = /, Volume .*/;
+
+            let flag = false;
+            let result = Array.from(document.querySelectorAll('#breadcrumbs .breadcrumb-item')).find(elem => {
+                if (!flag) {
+                    flag = elem.innerText.replace(regexpVolume, '') == 'Books';
+                } else if (elem.innerText.replace(regexpVolume, '') == mf_book.replace(regexpVolume, '')) {
+                    flag = false;
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+
+            let finalResult = "";
+            if (result){
+                finalResult = result.innerText.replace(regexpVolume, '');
+            }
+            return finalResult;
+        }
     
         let title = getMetaAttributes(['meta[name="dc.Title"]'], 'content')
         if (title == ""){
@@ -105,7 +127,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         if (mf_book == ""){
             mf_book = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText : "";
         }
-        let book_series = ''
+        let book_series = getBookSeries(mf_book) || "";
         const mf_isbn = document.querySelector('.intent_book_p_isbn')? document.querySelector('.intent_book_p_isbn').innerText : "";
         const mf_eisbn = document.querySelector('.intent_book_e_isbn')? document.querySelector('.intent_book_e_isbn').innerText : "";
         let mf_issn = getMetaAttributes(['meta[scheme="issn"]'], 'content');
@@ -116,9 +138,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (publisher == ""){
         //     publisher = document.querySelector('.NLM_publisher-name')? document.querySelector('.NLM_publisher-name').innerText : "";
         // }
-        let volume = document.querySelector('meta[name="citation_volume"]')? document.querySelector('meta[name="citation_volume"]').content : "";
-        const first_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_inbook_title"]'], 'content'));
-        const last_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_inbook_title"]'], 'content'));
+        const volume = document.querySelector('meta[name="citation_volume"]')? document.querySelector('meta[name="citation_volume"]').content : "";
+        const first_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_firstpage"]'], 'content'));
+        const last_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_lastpage"]'], 'content'));
         //const pages = document.querySelector('.cover-pages')? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)[1] : "" : "";
         const type = getMetaAttributes(['meta[name="dc.Type"]'], 'content');
         // var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
@@ -149,32 +171,34 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // }
         // const abstract = abstractTexts.join(' ') || "";
         const abstract = document.querySelector('#abstract .Abstract__block')? document.querySelector('#abstract .Abstract__block').innerText.trim().replaceAll("\n", " ") : "";
-        let affiliation = Array.from(document.querySelectorAll('.loa .hlFld-Affiliation')).map(elem => {
-            let authorNameElement = elem.querySelector('.loa-info-name');
-            let affilationElements = elem.querySelectorAll('.loa-info-affiliations-info');
+        let affiliation = Array.from(document.querySelectorAll('#contribAffiliations .intent_contributor'))
+        .filter(elem => {
+            let author = elem.querySelector('.contrib-search-book-part-meta')? elem.querySelector('.contrib-search-book-part-meta').innerText.trim() : "";
+            let affilation = elem.querySelector('.intent_contributor_affiliate')? elem.querySelector('.intent_contributor_affiliate').innerText.trim().replaceAll("(", "").replaceAll(")", "") : "";
+            return author != "" && affilation.length != "";
+        })
+        .map(elem => {
+            let author = elem.querySelector('.contrib-search-book-part-meta').innerText.trim();
+            let affilation = elem.querySelector('.intent_contributor_affiliate').innerText.trim().replace("(", "").replace(")", "");
+            return `${author}:${affilation}`;
+        })
+        .join(";; ");
+    
+        // let orcids = Array.from(document.querySelectorAll('.loa .hlFld-Affiliation')).map(elem => {
+        //     let authorNameElement = elem.querySelector('.loa-info-name');
+        //     let orcidElements = elem.querySelectorAll('.loa-info-orcid');
           
-            if(authorNameElement && affilationElements.length > 0) {
-              let authorName = authorNameElement.innerText;
-              let affilation = Array.from(affilationElements).map(aff => aff.innerText).join('!');
-              return `${authorName}:${affilation}`;
-            }
-        }).filter(item => item !== undefined).join(";;")
-
-        let orcids = Array.from(document.querySelectorAll('.loa .hlFld-Affiliation')).map(elem => {
-            let authorNameElement = elem.querySelector('.loa-info-name');
-            let orcidElements = elem.querySelectorAll('.loa-info-orcid');
-          
-            if(authorNameElement && orcidElements.length > 0) {
-              let authorName = authorNameElement.innerText;
-              let orcids = Array.from(orcidElements).map(aff => aff.innerText).join('!');
-              return `${authorName}::${orcids}`;
-            }
-          }).filter(item => item !== undefined).join(";;");
+        //     if(authorNameElement && orcidElements.length > 0) {
+        //       let authorName = authorNameElement.innerText;
+        //       let orcids = Array.from(orcidElements).map(aff => aff.innerText).join('!');
+        //       return `${authorName}::${orcids}`;
+        //     }
+        //   }).filter(item => item !== undefined).join(";;");
 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': mf_issn, '185': mf_eissn, '201': keywords, '239': type, '232': mf_journal, '235': publisher, '144': affiliation, '176': volume, '208': issue, '234': orcids, '205': language, '197': first_page, '198': last_page};
+        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': mf_issn, '240': mf_isbn, '241': mf_eisbn, '201': keywords, '239': type, '235': publisher, '144': affiliation, '176': volume, '205': language, '197': first_page, '198': last_page, '243': book_series, '242': mf_book};
         if (!title)
         {
             metadata = false
@@ -226,7 +250,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".pdf-download__link")?document.querySelector(".pdf-download__link").href : "";
+                var pdfLinks = document.querySelector(".intent_pdf_link")?document.querySelector(".intent_pdf_link").href : "";
                 if (!pdfLinks){
                     return null;
                 }
