@@ -309,7 +309,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             });
 
             page = await browser.newPage();
-            await page.setViewport({ width: 1600, height: 900 });
+            await page.setViewport({ width: 1280, height: 720 });
+            await page.waitForTimeout(5000)
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
