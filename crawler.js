@@ -87,7 +87,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             let result = Array.from(document.querySelectorAll('#breadcrumbs .breadcrumb-item')).find(elem => {
                 if (!flag) {
                     flag = elem.innerText.replace(regexpVolume, '') == 'Books';
-                } else if (elem.innerText.replace(regexpVolume, '') == mf_book.replace(regexpVolume, '')) {
+                } else if (elem.innerText.replace(regexpVolume, '').trim().replaceAll("\n","") == mf_book.replace(regexpVolume, '').trim().replaceAll("\n","")) {
                     flag = false;
                     return false;
                 } else {
@@ -123,7 +123,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (mf_doi == ""){
         //     mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
         // }
-        let mf_book = getMetaAttributes(['meta[name="citation_inbook_title"]'], 'content');
+        let mf_book = getMetaAttributes(['meta[name="citation_inbook_title"]'], 'content').trim().replaceAll("\n","");
         if (mf_book == ""){
             mf_book = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText : "";
         }
