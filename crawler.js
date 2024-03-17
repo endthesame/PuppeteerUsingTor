@@ -282,7 +282,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
+                args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -296,7 +296,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
                     await page.waitForTimeout(1000); // Задержка краулинга
 
