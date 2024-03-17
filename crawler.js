@@ -7,7 +7,7 @@ const {changeTorIp, shouldChangeIP} = require('./tor-config');
 const log = require('./logger');
 const crypto = require('crypto');
 const { getCurrentIP, checkAccess } = require('./utils');
-const { lang } = require('moment');
+//const { lang } = require('moment');
 
 puppeteer.use(StealhPlugin());
 
@@ -318,9 +318,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-                    await page.waitForTimeout(2000); // Задержка краулинга
+                    //await page.waitForTimeout(3000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);

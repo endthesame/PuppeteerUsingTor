@@ -35,7 +35,7 @@ async function shouldChangeIP(page) {
     });
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive" || currentURL.includes("crawlprevention") || !isTitleAvailable) ) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive" || currentURL.includes("crawlprevention") || !isTitleAvailable || currentURL.includes("oup2-idp")) ) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
