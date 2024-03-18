@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -49,24 +49,27 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                 title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText : "";
             }
         }
-        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content');
+        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)? getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)[0] : "";
         if (date == ""){
-            date = document.querySelector('.chapter-publication-date')? document.querySelector('.chapter-publication-date').innerText : "";
+            date = document.querySelector('.chapter-publication-date')? document.querySelector('.chapter-publication-date').innerText.match(/\d{4}/)? document.querySelector('.chapter-publication-date').innerText.match(/\d{4}/)[0] : "" : "";
         }
-        date = `${date.match(/\d{4}/)[0]}-01-01`;
+        if (date.length == 4){
+            date = date = `${date}-01-01`;
+        }
         let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         if (authors == ""){
             authors = Array.from(document.querySelectorAll('.authors .al-author-name')).map(elem => elem.innerText).join('; ')
         }
-        let mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
+        let mf_doi = document.querySelector('meta[name="citation_doi"]')? document.querySelector('meta[name="citation_doi"]').content : "";
         if (mf_doi == ""){
             mf_doi = document.querySelector('.chapter-doi-link')? document.querySelector('.chapter-doi-link').innerText.replace("https://doi.org/", "") : "";
         }
         const h1Element = document.querySelector('.book-info__meta .book-info__title');
         const mf_book = getTextFromElementWithoutSpan(h1Element).trim().replaceAll('\n', '');
         const subtitle = document.querySelector(".book-info__title .subtitle")?document.querySelector(".book-info__title .subtitle").textContent.trim().replaceAll('\n', '') : "";
-        const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
+        const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1].replaceAll('-','') : "" : "";
         const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
+        let book_series = document.querySelector('.book-series')? document.querySelector('.book-series').innerText : "";
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
@@ -87,8 +90,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type };
-        if (!mf_book || !title)
+        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type, '243': book_series };
+        if (!title || !mf_book)
         {
             metadata = false
         }
@@ -113,6 +116,17 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonFilePath = path.join(jsonFolderPath, jsonFileName);
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
+
+    (async () => {
+        const htmlSource = await page.content();
+        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+          if (err) {
+            console.error('Error saving HTML to file:', err);
+          } else {
+            console.log('HTML saved to file successfully');
+          }
+        });
+      })();
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
@@ -149,7 +163,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -178,9 +192,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(2000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
@@ -191,7 +205,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
