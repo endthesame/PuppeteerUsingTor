@@ -102,7 +102,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             return finalResult;
         }
     
-        let title = getMetaAttributes(['meta[name="dc.Title"]'], 'content')
+        let title = getMetaAttributes(['meta[name="citation_title"]'], 'content')
         if (title == ""){
             title = document.querySelector('.content-title')? document.querySelector('.content-title').innerText : "";
         }
@@ -115,7 +115,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
         let authors = getMetaAttributes(['meta[name="dc.Contributor"]'], 'content');
         if (authors == ""){
-            let rawAuthors = Array.from(document.querySelectorAll('#intent_contributors .contrib-search-book-part-meta')).map(elem => elem.innerText.replaceAll(",", "").trim())
+            let rawAuthors = Array.from(document.querySelectorAll('.wi-authors .al-authors-list .al-author-name .linked-name')).map(elem => elem.innerText.trim())
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
 

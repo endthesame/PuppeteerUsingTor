@@ -11,7 +11,7 @@ async function main() {
         const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
         const jsonFolderPath = path.join(siteFolderPath, 'jsons');
         const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-        const htmlFolderPath = path.join(siteFolderPath, 'html');
+        const htmlFolderPath = path.join(siteFolderPath, 'htmls');
         const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
 
         // Создать структуру папок, если они не существуют
