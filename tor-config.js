@@ -33,22 +33,22 @@ async function shouldChangeIP(page) {
     //     }
     // });
 
-    const error403 = await page.evaluate(() => {
-        if (document.querySelector('.explanation-message')){
-            return true
-        }
-        else if (document.querySelector('h1')){
-            if (document.querySelector('h1')?.textContent === "403 Forbidden"){
-                return true;
-            }
-        }
-        else {
-            return false
-        }
-    });
+    // const error403 = await page.evaluate(() => {
+    //     if (document.querySelector('.explanation-message')){
+    //         return true
+    //     }
+    //     else if (document.querySelector('h1')){
+    //         if (document.querySelector('h1')?.textContent === "403 Forbidden"){
+    //             return true;
+    //         }
+    //     }
+    //     else {
+    //         return false
+    //     }
+    // });
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || error403) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
