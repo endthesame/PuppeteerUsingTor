@@ -194,8 +194,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
         
         const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content') || "";
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content') || "";
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content') || "";
+        const volume = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_volume"]'], 'content')) || "";
+        const issue = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_issue"]'], 'content')) || "";
         // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
         // const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
 
