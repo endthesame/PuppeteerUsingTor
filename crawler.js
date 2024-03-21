@@ -121,7 +121,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             book_version = subtitle;
         }
 
-        let book_series = document.querySelector('.special-collections-wrap')? document.querySelector('.special-collections-wrap').innerText.trim().match(/Series: (.*)/)? document.querySelector('.special-collections-wrap').innerText.trim().match(/Series: (.*)/)[1] : "" : "";
+        let book_series = document.querySelector('.book-info__meta .book-series')? document.querySelector('.book-info__meta .book-series').innerText.trim() : "";
 
         let mf_isbn = "";
         let printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Hardback ISBN:"));
