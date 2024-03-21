@@ -96,7 +96,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // }
         let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)? getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)[0] : "";
         if (date == ""){
-            date = document.querySelector('.book-info__publication-date')? document.querySelector('.book-info__publication-date').innerText.match(/\d{4}/)? document.querySelector('.chapter-publication-date').innerText.match(/\d{4}/)[0] : "" : "";
+            date = document.querySelector('.book-info__publication-date')? document.querySelector('.book-info__publication-date').innerText.match(/\d{4}/)? document.querySelector('.book-info__publication-date').innerText.match(/\d{4}/)[0] : "" : "";
         }
         if (date.length == 4){
             date = `${date}-01-01`;
