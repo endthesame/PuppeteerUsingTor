@@ -28,7 +28,7 @@ async function main() {
         await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
