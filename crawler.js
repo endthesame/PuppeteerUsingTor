@@ -123,7 +123,6 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         let book_series = document.querySelector('.book-info__meta .book-series')? document.querySelector('.book-info__meta .book-series').innerText.trim() : "";
 
-                
         let mf_eisbn = "";
         let eIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("ISBN electronic:"));
         if (eIsbn.length > 0){
@@ -142,7 +141,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             }
         }
         if (mf_isbn == ""){
-            let raw_isbns = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)[1] : "" : "";
+            let raw_isbns = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"isbn":["[0-9-]+","([0-9-]+)"]/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"isbn":["[0-9-]+","([0-9-]+)"]/)[1] : "" : "";
             if (mf_eisbn != raw_isbns){
                 mf_isbn = raw_isbns
             }
