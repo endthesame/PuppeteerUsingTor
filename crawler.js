@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -277,6 +277,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
     meta_data["217"] = url; //mf_url
     const data = meta_data;
+    if (onlyjson){
+        return data;
+    }
 
     var pdfLinksToDownload = [];
 
@@ -405,4 +408,53 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
     log('Crawling finished.');
 }
 
-module.exports = { crawl, extractData };
+async function parsing(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+    log('Parsing Starting.');
+    {
+        let browser;
+        let page;
+
+        try {
+            browser = await puppeteer.launch({
+                //args: ['--proxy-server=127.0.0.1:8118'],
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+            });
+
+            page = await browser.newPage();
+            await page.setViewport({ width: 1920, height: 1080 });
+
+            const htmlFiles = fs.readdirSync(htmlFolderPath);
+            const fieldsToUpdate = ['240', '241'];
+            log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
+            for (const htmlFile of htmlFiles) {
+                const htmlFilePath = `${htmlFolderPath}/${htmlFile}`;
+                const jsonFilePath = `${jsonFolderPath}/${htmlFile.replace('.html', '.json')}`;
+                const urlToHtml = `file://${htmlFilePath}`
+                log(`Parsing html file: ${htmlFilePath}`);
+                await page.goto(urlToHtml);
+                const updatedData = await extractData(page, url=urlToHtml, onlyjson=true);
+                log(`New data from html file: ${htmlFilePath} parsed`);
+                log();
+                const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+                for (const key of fieldsToUpdate) {
+                    if (updatedData.hasOwnProperty(key)) {
+                        jsonData[key] = updatedData[key];
+                    }
+                }
+                log(`Metafields successfully updates`);
+                fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
+            }
+            
+        } catch (error) {
+            log(`Error during parsing: ${error.message}`);
+        } finally {
+            if (browser) {
+                await browser.close(); // Закрываем текущий браузер
+            }
+        }
+    }
+
+    log('Parsing finished.');
+}
+
+module.exports = { crawl, extractData, parsing };

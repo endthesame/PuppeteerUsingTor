@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { crawl, extractData } = require('./crawler');
+const { crawl, extractData, parsing } = require('./crawler');
 const { downloadPDFs } = require('./download-utils-puppeteer');
 const { checkAccess } = require('./utils');
 
 async function main() {
     try {
-        const hostNameForDir = process.argv[2] || "default_host_name";
+        const hostNameForDir = process.argv[2] || "rsc_chapters";
         const outputFolderPath = path.join(__dirname, 'output');
         const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
         const jsonFolderPath = path.join(siteFolderPath, 'jsons');
@@ -25,10 +25,13 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
+        //await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+
+        // Запуск обновления метаполей (парсинга)
+        await parsing(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
