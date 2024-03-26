@@ -94,10 +94,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (title == ""){
         //     title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.trim() : "";
         // }
-        let date = getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)? getMetaAttributes(['meta[name="citation_publication_date"]'], 'content').match(/\d{4}/)[0] : "";
-        if (date == ""){
-            date = document.querySelector('.book-info__publication-date')? document.querySelector('.book-info__publication-date').innerText.match(/\d{4}/)? document.querySelector('.book-info__publication-date').innerText.match(/\d{4}/)[0] : "" : "";
-        }
+        let date = document.querySelector('.volume--date')? document.querySelector('.volume--date').innerText.match(/\d{4}/)? document.querySelector('.volume--date').innerText.match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
@@ -121,7 +118,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             book_version = subtitle;
         }
 
-        let book_series = document.querySelector('.book-series')? document.querySelector('.book-series').innerText.trim() : "";
+        let book_series = 'Tutorials in Operations Research'
 
         let mf_isbn = "";
         let printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("ISBN print:"));
@@ -163,8 +160,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (last_page == ""){
         //     last_page = document.querySelector('.chapter-pagerange-value')? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)[2] : "" : "";
         // }
-        const pages = romanToNumberOrReturn(document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"numberOfPages":"(\d+)"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"numberOfPages":"(\d+)"/)[1] : "" : "");
-        const type = document.querySelector('meta[property="og:type"]')? document.querySelector('meta[property="og:type"]').content : "";
+        const pages = romanToNumberOrReturn(document.querySelector('.volume--pages')? document.querySelector('.volume--pages').innerText.match(/\d+/)? document.querySelector('.volume--pages').innerText.match(/\d+/)[0] : "" : "");
+        const type = 'book';
         
         let editorsArray = Array.from(document.querySelectorAll('.book-info__authors .editors .al-author-name .linked-name')).map(elem => elem.innerText.trim())
         let editors = Array.from([...new Set(editorsArray)]).join('; ')
