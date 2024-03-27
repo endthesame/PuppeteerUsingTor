@@ -29,15 +29,19 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
 
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
-    let browser = await puppeteer.launch({
-        //args: ['--proxy-server=127.0.0.1:8118'],
-        headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
-    });
+    // let browser = await puppeteer.launch({
+    //     //args: ['--proxy-server=127.0.0.1:8118'],
+    //     headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+    // });
 
     for (const link of links) {
         if (!link.trim()) {
             continue;
         }
+        let browser = await puppeteer.launch({
+            args: ['--proxy-server=127.0.0.1:8118'],
+            headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+        });
         let page = await browser.newPage();
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
@@ -45,9 +49,11 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         const tempDownloadPath = pdfSavePath.slice(0, -4);
         try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            await new Promise(resolve => setTimeout(resolve, 5000)); //timeout (waiting for the download to complete)
+            await new Promise(resolve => setTimeout(resolve, 60000)); //timeout (waiting for the download to complete)
             log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
             await page.close();
+            await browser.close();
+            await changeTorIp();
             const files = fs.readdirSync(tempDownloadPath);
             log(`Files found in ${tempDownloadPath}: ${files}`);
             if (files.length > 0) {
@@ -75,7 +81,6 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             });
         }
     }
-    await browser.close();
 }
 
 async function downloadPDF(page, pdfLink, tempDownloadPath) {
@@ -83,22 +88,29 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         behavior: 'allow',
         downloadPath: tempDownloadPath
     });
-    await page.goto('about:blank'); // Переход на пустую страницу
+    // await page.goto('about:blank'); // Переход на пустую страницу
 
-    await page.evaluate((pdfLink) => {
-        // Создание кнопки
-        const downloadButton = document.createElement('a');
-        downloadButton.href = pdfLink;
-        downloadButton.download = 'downloaded_file.pdf';
-        downloadButton.style.display = 'none'; // Скрыть кнопку
-        document.body.appendChild(downloadButton);
 
-        downloadButton.click();
-        downloadButton.remove();
-    }, pdfLink);
+    // await page.evaluate((pdfLink) => {
+    //     const dropDownMenu = #dropdownMenuLink
+    //     // Создание кнопки
+    //     const downloadButton = document.createElement('a');
+    //     downloadButton.href = pdfLink;
+    //     downloadButton.download = 'downloaded_file.pdf';
+    //     downloadButton.style.display = 'none'; // Скрыть кнопку
+    //     document.body.appendChild(downloadButton);
+
+    //     downloadButton.click();
+    //     downloadButton.remove();
+    // }, pdfLink);
+    await page.goto(pdfLink);
+    const dropDownMenu = await page.$('#dropdownMenuLink');
+    const buttonPdf = await page.$('#pdf');
+    await dropDownMenu.hover();
+    await buttonPdf.click();
 
     // Ожидание завершения скачивания
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(10000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };

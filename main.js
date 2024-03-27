@@ -11,7 +11,7 @@ async function main() {
         const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
         const jsonFolderPath = path.join(siteFolderPath, 'jsons');
         const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-        const htmlFolderPath = path.join(siteFolderPath, 'html');
+        const htmlFolderPath = path.join(siteFolderPath, 'htmls');
         const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
 
         // Создать структуру папок, если они не существуют
@@ -25,10 +25,10 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
+        //await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
         
         // Запуск скачивания PDF
-        //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }

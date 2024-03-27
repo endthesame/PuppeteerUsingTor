@@ -106,32 +106,32 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (title == ""){
         //     title = document.querySelector('.content-title')? document.querySelector('.content-title').innerText : "";
         // }
-        let date = document.querySelector('.intent_book_publication_date')? document.querySelector('.intent_book_publication_date').innerText.match(/\d{4}/)? document.querySelector('.intent_book_publication_date').innerText.match(/\d{4}/)[0] : "" : ""
+        let date = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/eISBN:\s*(\d+-\d+-\d+-\d+-\d+),\s*(\d{4})/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/eISBN:\s*[0-9-]+,\s*(\d{4})/)[1] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-
-        let rawAuthors = Array.from(document.querySelectorAll('.intent_book_author')).map(elem => elem.innerText.trim())
-        let authors = Array.from([...new Set(rawAuthors)]).join('; ')
-
-        let rawEditors = Array.from(document.querySelectorAll('.intent_book_editor')).map(elem => elem.innerText.trim())
-        let editors = Array.from([...new Set(rawEditors)]).join('; ')
-
-        let mf_doi = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/DOI\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/DOI\n?(.*)/)[1] : "" : "";
+        let authors = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Author\(s\) : (.*)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Author\(s\) : (.*)/)[1] : "" : "";
+        let editors = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Editor\(s\) : (.*)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Editor\(s\) : (.*)/)[1] : "" : "";
+        let mf_doi = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/DOI: (.*)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/DOI: (.*)/)[1] : "" : "";
         // if (mf_doi == ""){
         //     mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
         // }
-        let mf_book = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText : "";
-        let subtitle = document.querySelector('.intent_book_subtitle')? document.querySelector('.intent_book_subtitle').innerText.trim() : ""
-        let book_series = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/Book series\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/Book series\n?(.*)/)[1] : "" : "";
-        const mf_isbn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/ISBN\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/ISBN\n?(.*)/)[1] : "" : "";
-        const mf_eisbn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/eISBN\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/eISBN\n?(.*)/)[1] : "" : "";
-        let mf_issn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
-        let publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content')
+        let mf_book = Array.from(document.querySelector('#ebook-banner .col-md-5').childNodes).filter(node => {
+            if (node.classList) {
+              return node.classList.contains('h4') || node.classList.contains('h5');
+            }
+          }).map(elem => elem.innerText.trim()).filter(elem => elem != "").join(", ").trim();
+        // let subtitle = "";
+        // let book_series = "";
+        const mf_isbn = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/\nISBN: ([0-9-]+)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/\nISBN: ([0-9-]+)/)[1] : "" : "";
+        const mf_eisbn = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/eISBN: ([0-9-]+)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/eISBN: ([0-9-]+)/)[1] : "" : "";
+        let mf_issn = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/ISSN: (\S{4}-\S{4}) \(Print\)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/ISSN: (\S{4}-\S{4}) \(Print\)/)[1] : "" : "";
+        let mf_eissn = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/ISSN: (\S{4}-\S{4}) \(Online\)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/ISSN: (\S{4}-\S{4}) \(Online\)/)[1] : "" : "";
+        let publisher = document.querySelector('.table tbody')? document.querySelector('.table tbody').innerText.trim().replaceAll("\t","").match(/Publisher Name\s+\n?\s+?(.*)/)? document.querySelector('.table tbody').innerText.trim().replaceAll("\t","").match(/Publisher Name\s+\n?\s+?(.*)/)[1] : "" : ""
         // if (publisher == ""){
         //     publisher = document.querySelector('.NLM_publisher-name')? document.querySelector('.NLM_publisher-name').innerText : "";
         // }
-        const volume = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText.match(/Volume (\d+)/)? document.querySelector('.intent_book_title').innerText.match(/Volume (\d+)/)[1] : "" : ""
+        const volume = document.querySelector('#ebook-banner .col-md-5')? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Volume: (\d+)/)? document.querySelector('#ebook-banner .col-md-5').innerText.trim().match(/Volume: (\d+)/)[1] : "" : "";
         // const first_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_firstpage"]'], 'content'));
         // const last_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_lastpage"]'], 'content'));
         //const pages = document.querySelector('.cover-pages')? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)[1] : "" : "";
@@ -163,7 +163,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        // const abstract = document.querySelector('.intent_book_synopsis')? document.querySelector('.intent_book_synopsis').innerText.trim().replaceAll("\n", " ") : "";
+        const abstract = Array.from(document.querySelectorAll('#nav-profile p')).map(elem => elem.innerText.trim()).join(" ").replaceAll("\n"," ")
         // let affiliation = Array.from(document.querySelectorAll('#contribAffiliations .intent_contributor'))
         // .filter(elem => {
         //     let author = elem.querySelector('.contrib-search-book-part-meta')? elem.querySelector('.contrib-search-book-part-meta').innerText.trim() : "";
@@ -191,7 +191,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '200': authors, '203': date, '233': mf_doi, '184': mf_issn, '240': mf_isbn, '241': mf_eisbn, '239': type, '176': volume, '243': book_series, '242': mf_book, '212': subtitle, '207': editors};
+        var metadata = { '200': authors, '203': date, '233': mf_doi, '184': mf_issn, '185': mf_eissn, '240': mf_isbn, '241': mf_eisbn, '239': type, '176': volume, '242': mf_book, '207': editors, '81': abstract, '235': publisher};
         if (!mf_book)
         {
             metadata = false
@@ -242,8 +242,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
 
         if (isOpenAccess) {
-            pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".intent_pdf_link")?document.querySelector(".intent_pdf_link").href : "";
+            pdfLinksToDownload = await page.evaluate((url) => {
+                var pdfLinks = document.querySelector("#pdf")? url : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -253,7 +253,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
                 // .map(a => a.href.replace("reader", "pdf") + "?download=true");
                 // return pdfLinks;
-            });
+            }, url);
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
             if (pdfLinksToDownload){
