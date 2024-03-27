@@ -22,10 +22,9 @@ async function main() {
         if (!fs.existsSync(htmlFolderPath)) fs.mkdirSync(htmlFolderPath);
 
         // Копировать файл с ссылками
-        fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        //await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
+        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
