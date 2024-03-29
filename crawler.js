@@ -10,8 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false) {
-    log(`Processing URL: ${url}`);
+async function extractMetafields(page) {
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
@@ -133,25 +132,25 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let mf_isbn = "";
         let printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Hardback ISBN:"));
         if (printIsbn.length > 0){
-            mf_isbn = printIsbn[0].replace("Hardback ISBN: ", "").replaceAll("-","");
+            mf_isbn = printIsbn[0].replace("Hardback ISBN:", "").trim();
         }
         if (mf_isbn == ""){
             printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Paperback ISBN:"));
             if (printIsbn.length > 0){
-                mf_isbn = printIsbn[0].replace("Paperback ISBN: ", "").replaceAll("-","");
+                mf_isbn = printIsbn[0].replace("Paperback ISBN:", "").trim();
             }
         }
         
         let mf_eisbn = "";
         let eIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("PDF ISBN:"));
         if (eIsbn.length > 0){
-            mf_eisbn = eIsbn[0].replace("PDF ISBN: ", "").replaceAll("-","");
+            mf_eisbn = eIsbn[0].replace("PDF ISBN:", "").trim();
         }
 
         let mf_issn = "";
         let printIssn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Print ISSN:"))
         if (printIssn.length > 0){
-            mf_issn = printIssn[0].replace("Print ISSN: ", "")
+            mf_issn = printIssn[0].replace("Print ISSN:", "").trim();
         }
         
         let publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content')
@@ -267,8 +266,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
-    }, log);
+    });
+    return meta_data;
+}
 
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false) {
+    log(`Processing URL: ${url}`);
+    const meta_data = await extractMetafields(page);
     if (!meta_data)
     {
         console.log(`Skipping from ${url} due to lack of metadata (title).`);
@@ -277,9 +281,6 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
     meta_data["217"] = url; //mf_url
     const data = meta_data;
-    if (onlyjson){
-        return data;
-    }
 
     var pdfLinksToDownload = [];
 
@@ -408,7 +409,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
     log('Crawling finished.');
 }
 
-async function parsing(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function parsing(jsonFolderPath,  htmlFolderPath,) {
     log('Parsing Starting.');
     {
         let browser;
@@ -421,28 +422,33 @@ async function parsing(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolder
             });
 
             page = await browser.newPage();
-            await page.setViewport({ width: 1920, height: 1080 });
 
             const htmlFiles = fs.readdirSync(htmlFolderPath);
             const fieldsToUpdate = ['240', '241'];
             log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
             for (const htmlFile of htmlFiles) {
-                const htmlFilePath = `${htmlFolderPath}/${htmlFile}`;
-                const jsonFilePath = `${jsonFolderPath}/${htmlFile.replace('.html', '.json')}`;
-                const urlToHtml = `file://${htmlFilePath}`
-                log(`Parsing html file: ${htmlFilePath}`);
-                await page.goto(urlToHtml);
-                const updatedData = await extractData(page, url=urlToHtml, onlyjson=true);
-                log(`New data from html file: ${htmlFilePath} parsed`);
-                log();
-                const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
-                for (const key of fieldsToUpdate) {
-                    if (updatedData.hasOwnProperty(key)) {
-                        jsonData[key] = updatedData[key];
+                const htmlFilePath = path.join(htmlFolderPath, htmlFile);
+                const jsonFilePath = path.join(jsonFolderPath, htmlFile.replace('.html', '.json'));
+                if (fs.existsSync(jsonFilePath)) {
+                    const urlToHtml = `file:///${htmlFilePath}`
+                    //const urlToHtml = htmlFilePath
+                    log(`Parsing html file: ${htmlFilePath}`);
+                    await page.goto(urlToHtml, { waitUntil: 'domcontentloaded', timeout: 70000 });
+                    
+                    log(`Html loaded: ${htmlFilePath}`);
+                    const updatedData = await extractMetafields(page);
+                    log(`New data from html file: ${htmlFilePath} parsed`);
+                    const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+                    for (const key of fieldsToUpdate) {
+                        if (updatedData.hasOwnProperty(key)) {
+                            jsonData[key] = updatedData[key];
+                        }
                     }
+                    log(`Metafields successfully updates`);
+                    fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
+                } else {
+                    log(`html files ${htmlFilePath}, doesnt exist json file: ${jsonFilePath}`)
                 }
-                log(`Metafields successfully updates`);
-                fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
             }
             
         } catch (error) {

@@ -31,7 +31,7 @@ async function main() {
         //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
 
         // Запуск обновления метаполей (парсинга)
-        await parsing(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
+        await parsing(jsonFolderPath, htmlFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
