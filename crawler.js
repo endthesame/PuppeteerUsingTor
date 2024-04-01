@@ -30,6 +30,55 @@ async function extractMetafields(page) {
             return values.join('; ');
         };
 
+        function romanToNumberOrReturn(input) {
+            const romanNumerals = {
+                'I': 1,
+                'V': 5,
+                'X': 10,
+                'L': 50,
+                'C': 100,
+                'D': 500,
+                'M': 1000,
+                'i': 1,
+                'v': 5,
+                'x': 10,
+                'l': 50,
+                'c': 100,
+                'd': 500,
+                'm': 1000
+
+            };
+        
+            // Проверка, является ли входное значение римской цифрой
+            function isRoman(input) {
+                return /^[IVXLCDMivxlcdm]+$/i.test(input);
+            }
+        
+            // Если входное значение не является римской цифрой, возвращаем его без изменений
+            if (!isRoman(input)) {
+                return input;
+            }
+        
+            let result = 0;
+            let prevValue = 0;
+        
+            // Преобразование римской цифры в число
+            for (let i = input.length - 1; i >= 0; i--) {
+                let currentValue = romanNumerals[input[i]];
+        
+                if (currentValue < prevValue) {
+                    result -= currentValue;
+                } else {
+                    result += currentValue;
+                }
+        
+                prevValue = currentValue;
+            }
+        
+            // Преобразование числа в строку и возвращение результата
+            return result.toString();
+        }
+
         // Функция для извлечения текста из элемента без span
         function getTextFromElementWithoutSpan(elem) {
             let text = '';
@@ -57,7 +106,12 @@ async function extractMetafields(page) {
         }
         let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         if (authors == ""){
-            authors = Array.from(document.querySelectorAll('.authors .al-author-name')).map(elem => elem.innerText).join('; ')
+            let authorsArr = Array.from(document.querySelectorAll('.wi-authors .al-author-name .linked-name')).map(elem => elem.innerText)
+            authors = [...new Set(authorsArr)].join('; ')
+            if (authors == ""){
+                authorsArr = Array.from(document.querySelectorAll('.authors .al-author-name .linked-name')).map(elem => elem.innerText)
+                authors = [...new Set(authorsArr)].join('; ')
+            }
         }
         let mf_doi = document.querySelector('meta[name="citation_doi"]')? document.querySelector('meta[name="citation_doi"]').content : "";
         if (mf_doi == ""){
@@ -69,9 +123,14 @@ async function extractMetafields(page) {
         const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
         const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
         let book_series = document.querySelector('.book-series')? document.querySelector('.book-series').innerText : "";
+        let volume = romanToNumberOrReturn(document.querySelector('.book-info__title')?document.querySelector('.book-info__title').innerText.match(/Volume ([A-Z0-9]+)/)? document.querySelector('.book-info__title').innerText.match(/Volume ([A-Z0-9]+)/)[1] : "" : "");
+        
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
         // const last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
-        //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
+        let language = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)[1] : "" : "";
+        if (language == "en"){
+            language = "eng";
+        }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = Array.from(document.querySelectorAll('.kwd-part')).map(elem => elem.innerText).join('; ') || "";
         const type = document.querySelector('.chapterTopInfo  .chapter-groups') ? document.querySelector('.chapterTopInfo  .chapter-groups').innerText.replaceAll('\n', " ") : "";
@@ -89,7 +148,7 @@ async function extractMetafields(page) {
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type, '243': book_series };
+        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type, '243': book_series, '176': volume, '205': language };
         if (!title || !mf_book)
         {
             metadata = false
@@ -259,7 +318,7 @@ async function parsing(jsonFolderPath,  htmlFolderPath,) {
             page = await browser.newPage();
 
             const htmlFiles = fs.readdirSync(htmlFolderPath);
-            const fieldsToUpdate = ['241'];
+            const fieldsToUpdate = ['241', '176', '205', '200'];
             log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
             for (const htmlFile of htmlFiles) {
                 const htmlFilePath = path.join(htmlFolderPath, htmlFile);
