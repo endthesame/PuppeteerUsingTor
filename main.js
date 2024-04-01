@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { crawl, extractData } = require('./crawler');
+const { crawl, extractData, parsing } = require('./crawler');
 const { downloadPDFs } = require('./download-utils-puppeteer');
 const { checkAccess } = require('./utils');
 
@@ -11,7 +11,7 @@ async function main() {
         const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
         const jsonFolderPath = path.join(siteFolderPath, 'jsons');
         const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
-        const htmlFolderPath = path.join(siteFolderPath, 'html');
+        const htmlFolderPath = path.join(siteFolderPath, 'htmls');
         const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
 
         // Создать структуру папок, если они не существуют
@@ -25,10 +25,13 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
+        //await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+
+        // Запуск обновления метаполей (парсинга)
+        await parsing(jsonFolderPath, htmlFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }

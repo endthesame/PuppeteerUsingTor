@@ -10,8 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
-    log(`Processing URL: ${url}`);
+async function extractMetafields(page) {
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
@@ -67,7 +66,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         const h1Element = document.querySelector('.book-info__meta .book-info__title');
         const mf_book = getTextFromElementWithoutSpan(h1Element).trim().replaceAll('\n', '');
         const subtitle = document.querySelector(".book-info__title .subtitle")?document.querySelector(".book-info__title .subtitle").textContent.trim().replaceAll('\n', '') : "";
-        const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1].replaceAll('-','') : "" : "";
+        const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
         const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
         let book_series = document.querySelector('.book-series')? document.querySelector('.book-series').innerText : "";
         // const first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
@@ -97,8 +96,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
 
         return metadata;
-    }, log);
+    });
+    return meta_data;
+}
 
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+    log(`Processing URL: ${url}`);
+    const meta_data = await extractMetafields(page);
     if (!meta_data)
     {
         console.log(`Skipping from ${url} due to lack of metadata (mf_book).`);
@@ -240,4 +244,58 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
     log('Crawling finished.');
 }
 
-module.exports = { crawl, extractData };
+async function parsing(jsonFolderPath,  htmlFolderPath,) {
+    log('Parsing Starting.');
+    {
+        let browser;
+        let page;
+
+        try {
+            browser = await puppeteer.launch({
+                //args: ['--proxy-server=127.0.0.1:8118'],
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+            });
+
+            page = await browser.newPage();
+
+            const htmlFiles = fs.readdirSync(htmlFolderPath);
+            const fieldsToUpdate = ['241'];
+            log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
+            for (const htmlFile of htmlFiles) {
+                const htmlFilePath = path.join(htmlFolderPath, htmlFile);
+                const jsonFilePath = path.join(jsonFolderPath, htmlFile.replace('.html', '.json'));
+                if (fs.existsSync(jsonFilePath)) {
+                    const urlToHtml = `file:///${htmlFilePath}`
+                    //const urlToHtml = htmlFilePath
+                    log(`Parsing html file: ${htmlFilePath}`);
+                    await page.goto(urlToHtml, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                    
+                    log(`Html loaded: ${htmlFilePath}`);
+                    const updatedData = await extractMetafields(page);
+                    log(`New data from html file: ${htmlFilePath} parsed`);
+                    const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+                    for (const key of fieldsToUpdate) {
+                        if (updatedData.hasOwnProperty(key)) {
+                            jsonData[key] = updatedData[key];
+                        }
+                    }
+                    log(`Metafields successfully updates`);
+                    fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
+                } else {
+                    log(`html files ${htmlFilePath}, doesnt exist json file: ${jsonFilePath}`)
+                }
+            }
+            
+        } catch (error) {
+            log(`Error during parsing: ${error.message}`);
+        } finally {
+            if (browser) {
+                await browser.close(); // Закрываем текущий браузер
+            }
+        }
+    }
+
+    log('Parsing finished.');
+}
+
+module.exports = { crawl, extractData, parsing };
