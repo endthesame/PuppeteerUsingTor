@@ -127,8 +127,11 @@ async function extractMetafields(page) {
             mf_book = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText : "";
         }
         let book_series = getBookSeries(mf_book) || "";
-        const mf_isbn = document.querySelector('.intent_book_p_isbn')? document.querySelector('.intent_book_p_isbn').innerText : "";
+        let mf_isbn = document.querySelector('.intent_book_p_isbn')? document.querySelector('.intent_book_p_isbn').innerText : "";
         const mf_eisbn = document.querySelector('.intent_book_e_isbn')? document.querySelector('.intent_book_e_isbn').innerText : "";
+        if (mf_isbn == "" && mf_eisbn==""){
+            mf_isbn = document.querySelector('meta[scheme="isbn"]')? document.querySelector('meta[scheme="isbn"]').content : "";
+        }
         let mf_issn = getMetaAttributes(['meta[scheme="issn"]'], 'content');
         if (mf_issn){
             mf_issn = document.querySelector('.intent_journal_issn')? document.querySelector('.intent_journal_issn').innerText : "";
