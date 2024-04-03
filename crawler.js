@@ -100,8 +100,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
         let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         if (authors == ""){
-            let rawAuthors = Array.from(document.querySelectorAll('.book-info__authors .authors .al-author-name .linked-name')).map(elem => elem.innerText.trim())
-            authors = Array.from([...new Set(rawAuthors)]).join('; ')
+            authors = document.querySelector('.volume-wrapper .xxlt-grey-bg')? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITOR\n?\s+(.*)/) ? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITOR\n?\s+(.*)/)[1] : "" : "";
         }
 
         let mf_doi = document.querySelector('meta[name="citation_doi"]')? document.querySelector('meta[name="citation_doi"]').content : "";
@@ -109,14 +108,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             mf_doi = document.querySelector('.book-info__doi-link')? document.querySelector('.book-info__doi-link').innerText.replace("https://doi.org/", "") : "";
         }
 
-        let full_book_name_node = document.querySelector('.book-info__title');
-        let mf_book = getTextFromElementWithoutSpan(full_book_name_node).trim().replaceAll('\n', '');
-
-        let subtitle = document.querySelector('.book-info__title .subtitle')? document.querySelector('.book-info__title .subtitle').innerText.trim() : "";
-        let book_version = "";
-        if (subtitle.includes("Edition") || subtitle.includes("Version")){
-            book_version = subtitle;
-        }
+        let mf_book = document.querySelector('.volume--title')? document.querySelector('.volume--title').innerText.trim() : "";
 
         let book_series = 'Tutorials in Operations Research'
 
@@ -144,10 +136,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     mf_issn = printIssn[0].replace("Print ISSN: ", "")
         // }
         
-        let publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content')
-        if (publisher == ""){
-            publisher = document.querySelector('.book-info__publisher-name')? document.querySelector('.book-info__publisher-name').innerText.trim() : "";
-        }
+        let publisher = "INFORMS";
         // let volume = document.querySelector('.book-info__volume-number')? document.querySelector('.book-info__volume-number').innerText.trim(): "";
         // if (volume == "" && document.querySelector('.book-info__title').innerText.toLowerCase().includes("volume")){
         //     volume = 
