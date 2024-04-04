@@ -95,21 +95,37 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.trim() : "";
         // }
         let date = document.querySelector('.volume--date')? document.querySelector('.volume--date').innerText.match(/\d{4}/)? document.querySelector('.volume--date').innerText.match(/\d{4}/)[0] : "" : "";
+        if (date == ""){
+            date = document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > b:nth-child(1)')? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > b:nth-child(1)').innerText.match(/\d{4}/)? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > b:nth-child(1)').innerText.match(/\d{4}/)[0] : "" : "";
+        }
         if (date.length == 4){
             date = `${date}-01-01`;
         }
         let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
-        if (authors == ""){
-            authors = document.querySelector('.volume-wrapper .xxlt-grey-bg')? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITOR\n?\s+(.*)/) ? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITOR\n?\s+(.*)/)[1] : "" : "";
+        let editors = "";
+        if (editors == ""){
+            editors = document.querySelector('.volume-wrapper .xxlt-grey-bg')? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITORS?\n?\s+(.*)/) ? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/VOLUME EDITORS?\n?\s+(.*)/)[1].replace(", and ", ", ").replace(" and ", ", ").replace(",",";") : "" : "";
+            if (editors == ""){
+                editors = document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(6)')? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(6)').innerText.replace(", and ", ", ").replace(" and ", ", ").replace(",",";") : "";
+            }
         }
 
         let mf_doi = document.querySelector('meta[name="publication_doi"]')? document.querySelector('meta[name="publication_doi"]').content : "";
 
         let mf_book = document.querySelector('.volume--title')? document.querySelector('.volume--title').innerText.trim() : "";
+        if (mf_book == ""){
+            mf_book = document.querySelector('meta[property="og:title"]')? document.querySelector('meta[property="og:title"]').content.trim() : "";
+            if (mf_book == ""){
+                mf_book = document.querySelector('.col-lg-3 span[style="font-size:x-large"] b')? document.querySelector('.col-lg-3 span[style="font-size:x-large"] b').innerText : "";
+            }
+        }
 
         let book_series = 'Tutorials in Operations Research'
 
         let mf_isbn = document.querySelector('.volume-wrapper .xxlt-grey-bg')? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/ISBN ([0-9-]+)/)? document.querySelector('.volume-wrapper .xxlt-grey-bg').innerText.trim().match(/ISBN ([0-9-]+)/)[1] : "" : "";
+        if (mf_isbn == ""){
+            mf_isbn = document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(12) > span:nth-child(1) > b:nth-child(1)')? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(12) > span:nth-child(1) > b:nth-child(1)').innerText.match(/ISBN ([0-9-]+)/)? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(12) > span:nth-child(1) > b:nth-child(1)').innerText.match(/ISBN ([0-9-]+)/)[1] : "" : "";
+        }
         // if (mf_isbn == ""){
         //     printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Paperback ISBN:"));
         //     if (printIsbn.length > 0){
@@ -142,7 +158,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (last_page == ""){
         //     last_page = document.querySelector('.chapter-pagerange-value')? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)[2] : "" : "";
         // }
-        const pages = romanToNumberOrReturn(document.querySelector('.volume--pages')? document.querySelector('.volume--pages').innerText.match(/\d+/)? document.querySelector('.volume--pages').innerText.match(/\d+/)[0] : "" : "");
+        let pages = romanToNumberOrReturn(document.querySelector('.volume--pages')? document.querySelector('.volume--pages').innerText.match(/\d+/)? document.querySelector('.volume--pages').innerText.match(/\d+/)[0] : "" : "");
+        if (pages == ""){
+            pages = romanToNumberOrReturn(document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > span:nth-child(3)')? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > span:nth-child(3)').innerText.match(/Pages (\d+)/)? document.querySelector('main.content > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > p:nth-child(4) > span:nth-child(3)').innerText.match(/Pages (\d+)/)[1] : "" : "");
+        }
         const type = 'book';
         
         // let editorsArray = Array.from(document.querySelectorAll('.book-info__authors .editors .al-author-name .linked-name')).map(elem => elem.innerText.trim())
@@ -182,7 +201,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '200': authors, '203': date, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '243': book_series, '242': mf_book, '193': pages};
+        var metadata = { '200': authors, '203': date, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '243': book_series, '242': mf_book, '193': pages, '207': editors};
         if (!mf_book)
         {
             metadata = false
@@ -271,7 +290,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             });
 
             page = await browser.newPage();
-            await page.setViewport({ width: 1920, height: 1080 });
+            await page.setViewport({ width: 1280, height: 720 });
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
