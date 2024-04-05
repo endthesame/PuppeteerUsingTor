@@ -101,7 +101,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-        let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        let authors = ""; //getMetaAttributes(['meta[name="citation_author"]'], 'content');
         if (authors == ""){
             let rawAuthors = Array.from(document.querySelectorAll('.book-info__authors .authors .al-author-name .linked-name')).map(elem => elem.innerText.trim())
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
@@ -181,7 +181,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             // if (affilation == ""){
             //     affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
             // }
-            let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
+            //let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
+            let affilation = Array.from(elem.querySelectorAll('.aff')).map(affil => affil.innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join("!");
             return `${author}:${affilation}`;
         })
         let editors_aff = Array.from([...new Set(raw_editors_aff)]).join(";; ");
@@ -218,7 +219,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             // if (affilation == ""){
             //     affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
             // }
-            let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
+            //let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
+            let affilation = Array.from(elem.querySelectorAll('.aff')).map(affil => affil.innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join("!");
             return `${author}:${affilation}`;
         })
         let affiliation = Array.from([...new Set(raw_affiliation)]).join(";; ");
