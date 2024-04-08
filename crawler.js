@@ -106,27 +106,30 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (title == ""){
         //     title = document.querySelector('.content-title')? document.querySelector('.content-title').innerText : "";
         // }
-        let date = document.querySelector('.intent_book_publication_date')? document.querySelector('.intent_book_publication_date').innerText.match(/\d{4}/)? document.querySelector('.intent_book_publication_date').innerText.match(/\d{4}/)[0] : "" : ""
+        let date = document.querySelector('meta[name="citation_publication_date"]')? document.querySelector('meta[name="citation_publication_date"]').content : "";
+        if (date == ""){
+            date = document.querySelector('.container .metadata-box')? document.querySelector('.container .metadata-box').innerText.match(/Publication Date\n?\n?(.*)/)? document.querySelector('.container .metadata-box').innerText.match(/Publication Date\n?\n?(.*)/)[1] : "" : "";
+        }
         if (date.length == 4){
             date = `${date}-01-01`;
         }
 
-        let rawAuthors = Array.from(document.querySelectorAll('.intent_book_author')).map(elem => elem.innerText.trim())
+        let rawAuthors = Array.from(document.querySelectorAll('.person-group .person .title')).map(elem => elem.innerText.trim())
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
 
-        let rawEditors = Array.from(document.querySelectorAll('.intent_book_editor')).map(elem => elem.innerText.trim())
-        let editors = Array.from([...new Set(rawEditors)]).join('; ')
+        // let rawEditors = Array.from(document.querySelectorAll('.intent_book_editor')).map(elem => elem.innerText.trim())
+        // let editors = Array.from([...new Set(rawEditors)]).join('; ')
 
-        let mf_doi = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/DOI\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/DOI\n?(.*)/)[1] : "" : "";
-        // if (mf_doi == ""){
-        //     mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
-        // }
-        let mf_book = document.querySelector('.intent_book_title')? document.querySelector('.intent_book_title').innerText : "";
-        let subtitle = document.querySelector('.intent_book_subtitle')? document.querySelector('.intent_book_subtitle').innerText.trim() : ""
+        let mf_doi = document.querySelector('meta[name="citation_doi"]')? document.querySelector('meta[name="citation_doi"]').content : "";
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.container .metadata-box')? document.querySelector('.container .metadata-box').innerText.match(/DOI\n?(.*)/)? document.querySelector('.container .metadata-box').innerText.match(/DOI\n?(.*)/)[1] : "" : "";document.querySelector('.container .metadata-box')? document.querySelector('.container .metadata-box').innerText.match(/DOI\n?(.*)/)? document.querySelector('.container .metadata-box').innerText.match(/DOI\n?(.*)/)[1] : "" : "";
+        }
+        let mf_book = document.querySelector('.title .primary-title')? document.querySelector('.title .primary-title').innerText.trim() : "";
+        let subtitle = document.querySelector('.title .primary-subtitle')? document.querySelector('.title .primary-subtitle').innerText.trim() : "";
         let book_series = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/Book series\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/Book series\n?(.*)/)[1] : "" : "";
-        const mf_isbn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/ISBN\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/ISBN\n?(.*)/)[1] : "" : "";
-        const mf_eisbn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/eISBN\n?(.*)/)? document.querySelector('.col-12.mt-3').innerText.match(/eISBN\n?(.*)/)[1] : "" : "";
-        let mf_issn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
+        const mf_isbn = document.querySelector('.container .metadata-box')? document.querySelector('.container .metadata-box').innerText.match(/ISBN print\n?(.*)/)? document.querySelector('.container .metadata-box').innerText.match(/ISBN print\n?(.*)/)[1] : "" : "";
+        const mf_eisbn = document.querySelector('.container .metadata-box')? document.querySelector('.container .metadata-box').innerText.match(/ISBN digital\n?(.*)/)? document.querySelector('.container .metadata-box').innerText.match(/ISBN digital\n?(.*)/)[1] : "" : "";
+        //let mf_issn = document.querySelector('.col-12.mt-3')? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)? document.querySelector('.col-12.mt-3').innerText.match(/Book series ISSN\n?(\d+-\d+[a-zA-Z]?)/)[1] : "" : "";
         let publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content')
         // if (publisher == ""){
         //     publisher = document.querySelector('.NLM_publisher-name')? document.querySelector('.NLM_publisher-name').innerText : "";
@@ -151,7 +154,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         // let rawKeywords =Array.from(document.querySelectorAll('#keywords_list .intent_text')).map(elem => elem.innerText.replaceAll(",", "").trim())
-        // let keywords =Array.from([...new Set(rawKeywords)]).join('; ')
+        let keywords = document.querySelector('.container .metadata-box ul.keywords')? document.querySelector('.container .metadata-box ul.keywords').innerText.replaceAll("\n","; ") : "";
         // if (keywords == ""){
         //     keywords = getMetaAttributes(['meta[name="keywords"]'], 'content')
         // }   
