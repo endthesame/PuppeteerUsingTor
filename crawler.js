@@ -125,6 +125,7 @@ async function extractMetafields(page) {
         let book_version = "";
         if (subtitle.includes("Edition") || subtitle.includes("Version")){
             book_version = subtitle;
+            subtitle = ""
         }
 
         let book_series = document.querySelector('.special-collections-wrap')? document.querySelector('.special-collections-wrap').innerText.trim().match(/Series: (.*)/)? document.querySelector('.special-collections-wrap').innerText.trim().match(/Series: (.*)/)[1] : "" : "";
@@ -178,8 +179,8 @@ async function extractMetafields(page) {
         })
         .map(elem => {
             let author = elem.querySelector('.info-card-name').innerText.trim();
-            let affilation = Array.from(elem.querySelectorAll('.aff > div, .aff > a'))
-                .map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ");
+            let affilation = Array.from(elem.querySelectorAll('.aff'))
+                .map(divAff => Array.from(divAff.querySelectorAll('div, a')).map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ")).join("!");
             if (affilation == ""){
                 affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
             }
@@ -214,8 +215,8 @@ async function extractMetafields(page) {
         })
         .map(elem => {
             let author = elem.querySelector('.info-card-name').innerText.trim();
-            let affilation = Array.from(elem.querySelectorAll('.aff > div, .aff > a'))
-                .map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ");
+            let affilation = Array.from(elem.querySelectorAll('.aff'))
+                .map(divAff => Array.from(divAff.querySelectorAll('div, a')).map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ")).join("!");
             if (affilation == ""){
                 affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
             }
@@ -231,8 +232,8 @@ async function extractMetafields(page) {
         })
         .map(elem => {
             let author = elem.querySelector('.info-card-name').innerText.trim();
-            let affilation = Array.from(elem.querySelectorAll('.aff > div, .aff > a'))
-                .map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ");
+            let affilation = Array.from(elem.querySelectorAll('.aff'))
+                .map(divAff => Array.from(divAff.querySelectorAll('div, a')).map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ")).join("!");
             if (affilation == ""){
                 affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
             }
@@ -244,21 +245,24 @@ async function extractMetafields(page) {
             affiliation = book_author_affiliation;
         }
     
-        // let orcids = Array.from(document.querySelectorAll('.loa .hlFld-Affiliation')).map(elem => {
-        //     let authorNameElement = elem.querySelector('.loa-info-name');
-        //     let orcidElements = elem.querySelectorAll('.loa-info-orcid');
-          
-        //     if(authorNameElement && orcidElements.length > 0) {
-        //       let authorName = authorNameElement.innerText;
-        //       let orcids = Array.from(orcidElements).map(aff => aff.innerText).join('!');
-        //       return `${authorName}::${orcids}`;
-        //     }
-        //   }).filter(item => item !== undefined).join(";;");
+        let orcidsRaw = Array.from(document.querySelectorAll('.wi-authors .info-card-author'))
+        .filter(elem => {
+            let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
+            let orcid = elem.querySelector('.info-card-location')? elem.querySelector('.info-card-location').innerText.trim() : "";
+            return author != "" && orcid.length != "" && orcid.includes("orcid.org");
+        })
+        .map(elem => {
+            let author = elem.querySelector('.info-card-name').innerText.trim();
+            let orcid = Array.from(elem.querySelectorAll('.info-card-location'))
+                .map(orc => orc.innerText.trim()).join("!");
+            return `${author}::${orcid}`;
+        })
+        let orcids = Array.from([...new Set(orcidsRaw)]).join(";; ");
 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': mf_issn, '240': mf_isbn, '241': mf_eisbn, '201': keywords, '239': type, '235': publisher, '144': affiliation, '176': volume, '205': language, '197': first_page, '198': last_page, '243': book_series, '242': mf_book, '207': editors, '193': pages, '212': subtitle, '199': book_version, '146': editors_aff};
+        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': mf_issn, '240': mf_isbn, '241': mf_eisbn, '201': keywords, '239': type, '235': publisher, '144': affiliation, '176': volume, '205': language, '197': first_page, '198': last_page, '243': book_series, '242': mf_book, '207': editors, '193': pages, '212': subtitle, '199': book_version, '146': editors_aff, '234': orcids};
         if (!title)
         {
             metadata = false
@@ -424,7 +428,7 @@ async function parsing(jsonFolderPath,  htmlFolderPath,) {
             page = await browser.newPage();
 
             const htmlFiles = fs.readdirSync(htmlFolderPath);
-            const fieldsToUpdate = ['240', '241'];
+            const fieldsToUpdate = ['144', '146', '212', '199', '234'];
             log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
             for (const htmlFile of htmlFiles) {
                 const htmlFilePath = path.join(htmlFolderPath, htmlFile);
