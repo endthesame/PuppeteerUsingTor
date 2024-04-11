@@ -11,7 +11,7 @@ const { lang } = require('moment');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, htmlFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
