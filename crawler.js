@@ -84,9 +84,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-        const authors = Array.from(document.querySelectorAll('.col-md-7 p a.text-secondary')).map(elem => {
-            return elem.innerText;
-          }).join("; ").replaceAll(" *","") || document.querySelector('#side-b p')? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)[1].replaceAll('and', ", ") : "" : "" || "";
+        let authors = document.querySelector('#side-b p')? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)[1].replaceAll('and', ", ") : "" : "";
+        if (authors == "") {
+            authors = Array.from(document.querySelectorAll('.col-md-7 p a.text-secondary')).map(elem => {
+                return elem.innerText;
+            }).join("; ").replaceAll(" *","")
+        }
         const mf_doi = document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*DOI:\s*(.*)\s*/)? document.querySelector('.col-md-7').innerText.trim().match(/\s*DOI:\s*(.*)\s*/)[1] : "" : "";
         
         const first_part_mf_book = document.querySelector('.media-body .pr-lg-3')? document.querySelector('.media-body .pr-lg-3').innerText : "";
@@ -162,16 +165,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
-    (async () => {
-        const htmlSource = await page.content();
-        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
-          if (err) {
-            console.error('Error saving HTML to file:', err);
-          } else {
-            console.log('HTML saved to file successfully');
-          }
-        });
-      })();
+    //await page.waitForNavigation(); // Wait for navigation to complete
+    const htmlSource = await page.content();
+    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+      if (err) {
+        console.error('Error saving HTML to file:', err);
+      } else {
+        console.log('HTML saved to file successfully');
+      }
+    });
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
