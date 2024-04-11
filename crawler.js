@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -30,18 +30,57 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // }
             return values.join('; ');
         };
+        function romanToNumberOrReturn(input) {
+            const romanNumerals = {
+                'I': 1,
+                'V': 5,
+                'X': 10,
+                'L': 50,
+                'C': 100,
+                'D': 500,
+                'M': 1000,
+                'i': 1,
+                'v': 5,
+                'x': 10,
+                'l': 50,
+                'c': 100,
+                'd': 500,
+                'm': 1000
 
-        // let firstPage, lastPage, year;
-
-        // const tocHeadings = document.querySelectorAll('.article__tocHeading');
-
-        // tocHeadings.forEach(heading => {
-        //     const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
-        //     [_, firstPage, lastPage, year] = match.map(item => item || '');
-        // });
+            };
+        
+            // Проверка, является ли входное значение римской цифрой
+            function isRoman(input) {
+                return /^[IVXLCDMivxlcdm]+$/i.test(input);
+            }
+        
+            // Если входное значение не является римской цифрой, возвращаем его без изменений
+            if (!isRoman(input)) {
+                return input;
+            }
+        
+            let result = 0;
+            let prevValue = 0;
+        
+            // Преобразование римской цифры в число
+            for (let i = input.length - 1; i >= 0; i--) {
+                let currentValue = romanNumerals[input[i]];
+        
+                if (currentValue < prevValue) {
+                    result -= currentValue;
+                } else {
+                    result += currentValue;
+                }
+        
+                prevValue = currentValue;
+            }
+        
+            // Преобразование числа в строку и возвращение результата
+            return result.toString();
+        }
     
-        const title = document.querySelector('.col-md-7 h1.h3')? document.querySelector('.col-md-7 h1.h3').innerText : ""
-        var date = document.querySelector('.btn-info')? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+),\s*(\d{4})/)? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+),\s*(\d{4})/)[2] : "" : "";
+        const title = document.querySelector('.col-md-7 h1.h3')? document.querySelector('.col-md-7 h1.h3').innerText : "";
+        let date = document.querySelector('.btn-info')? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+),\s*(\d{4})/)? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+),\s*(\d{4})/)[2] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
@@ -49,25 +88,33 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             return elem.innerText;
           }).join("; ").replaceAll(" *","") || document.querySelector('#side-b p')? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)? document.querySelector('#side-b p').innerText.trim().match(/Author\(s\):\s*(.*)/)[1].replaceAll('and', ", ") : "" : "" || "";
         const mf_doi = document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*DOI:\s*(.*)\s*/)? document.querySelector('.col-md-7').innerText.trim().match(/\s*DOI:\s*(.*)\s*/)[1] : "" : "";
-        const mf_book = document.querySelector('.media-body .pr-lg-3')? document.querySelector('.media-body .pr-lg-3').innerText : "";
+        
+        const first_part_mf_book = document.querySelector('.media-body .pr-lg-3')? document.querySelector('.media-body .pr-lg-3').innerText : "";
+        const second_part_mf_book = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<h5>(.*)<\/h5>/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<h5>(.*)<\/h5>/)[1].trim() : "" : "";
+        const third_part_mf_book = document.querySelector('.media-body h3.h6')? document.querySelector('.media-body h3.h6').innerText.trim() : "";
+        const mf_book_part = [first_part_mf_book, second_part_mf_book, third_part_mf_book]  
+        const mf_book = mf_book_part.filter(elem => elem != "").join(", ")
+        
         const mf_isbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*(\d+-\d+-\d+-\d+-\d+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*(\d+-\d+-\d+-\d+-\d+)\s*/)[1] : "" : "";
         const mf_eisbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*(\d+-\d+-\d+-\d+-\d+)\s*/)[1] : "" : "";
-        //const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
+        const mf_issn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Print\)/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Print\)/)[1] : "" : "";
+        const mf_eissn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Online\)/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Online\)/)[1] : "" : "";
+        const publisher = document.querySelector('#CiteWindow .table')? document.querySelector('#CiteWindow .table').innerText.match(/Publisher Name(.*)/)? document.querySelector('#CiteWindow .table').innerText.match(/Publisher Name(.*)/)[1].trim() : "" : "";
         const volume = document.querySelector('.media-body .h6')? document.querySelector('.media-body .h6').innerText.match(/Volume: (\d+)/)? document.querySelector('.media-body .h6').innerText.match(/Volume: (\d+)/)[1] : "" : "";
         //const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        const first_page = document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)[1] : "" : "";
-        const last_page = document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)?document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*(\d+)-(\d+)\s*/)[2] : "" : "";
+        const first_page = romanToNumberOrReturn(document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*([a-zA-Z0-9]+)-([a-zA-Z0-9]+)\s*/)? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*([a-zA-Z0-9]+)-([a-zA-Z0-9]+)\s*/)[1] : "" : "");
+        const last_page = romanToNumberOrReturn(document.querySelector('.col-md-7')? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*([a-zA-Z0-9]+)-([a-zA-Z0-9]+)\s*/)? document.querySelector('.col-md-7').innerText.trim().match(/\s*Pp:\s*([a-zA-Z0-9]+)-([a-zA-Z0-9]+)\s*/)[2] : "" : "");
         //const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = Array.from(document.querySelectorAll('.col-md-8 .card .card-body p')).map(elem => {
-            var text = elem.innerText.trim();
+            let text = elem.innerText.trim();
             if (text.includes("Keywords:")){
-              text = text.replaceAll("Keywords:", "");
+                text = text.replaceAll("Keywords:", "");
             } else {
-              text = "";
+                text = "";
             }
-						return text;
-          }).join(" ") || "";
+            return text;
+        }).join(" ").trim() || "";
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -82,12 +129,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
               text = "";
             }
 			return text;
-          }).join(" ") || "";
+          }).join(" ").trim() || "";
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { "202": title, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '81': abstract, '242': mf_book, '240': mf_isbn, '241': mf_eisbn, '203': date, '176': volume, '201': keywords};
+        var metadata = { "202": title, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '81': abstract, '242': mf_book, '240': mf_isbn, '241': mf_eisbn, '203': date, '176': volume, '201': keywords, '184': mf_issn, '185': mf_eissn, '235': publisher};
         if (!title)
         {
             metadata = false
@@ -115,6 +162,17 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
+    (async () => {
+        const htmlSource = await page.content();
+        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+          if (err) {
+            console.error('Error saving HTML to file:', err);
+          } else {
+            console.log('HTML saved to file successfully');
+          }
+        });
+      })();
+
     if (downloadPDFmark) {
         let isOpenAccess = true;
         if (checkOpenAccess) {
@@ -127,8 +185,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         }
 
         if (isOpenAccess) {
-            pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector("a.download-button")?document.querySelector("a.download-button").href : "";
+            pdfLinksToDownload = await page.evaluate((url) => {
+                var pdfLinks = document.querySelector("#pdf")? url : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -138,7 +196,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
                 // .map(a => a.href.replace("reader", "pdf") + "?download=true");
                 // return pdfLinks;
-            });
+            }, url);
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
             if (pdfLinksToDownload){
@@ -150,7 +208,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -173,9 +231,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(1000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
@@ -186,7 +244,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
