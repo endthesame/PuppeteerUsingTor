@@ -278,8 +278,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                     });
                 } catch (error) {
                     log(`Error processing ${url}: ${error.message}`);
+                    await page.close();
+                    page = await browser.newPage();
+                    await page.setViewport({ width: 1600, height: 900 });
                     // Продолжаем внутренний цикл при ошибке
-                    continue;
+                    //continue;
                 }
             }
 
