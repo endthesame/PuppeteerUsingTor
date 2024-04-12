@@ -323,7 +323,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
+                args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
