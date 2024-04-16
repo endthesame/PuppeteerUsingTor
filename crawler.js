@@ -103,7 +103,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             mf_doi = document.querySelector('.uk-accordion-content')? document.querySelector('.uk-accordion-content').innerText.match(/DOI: (10.*)/)? document.querySelector('.uk-accordion-content').innerText.match(/DOI: (10.*)/)[1] : "" : "";
         }
 
-        let mf_journal = "";
+        let mf_journal = document.querySelector('meta[name="citation_journal_title"]')? document.querySelector('meta[name="citation_journal_title"]').content : "";
+        if (mf_journal == ""){
+            mf_journal = document.querySelector('.uk-article-is-part-of') ? document.querySelector('.uk-article-is-part-of').innerText.trim() : "";
+        }
         let mf_issn = document.querySelector('meta[name="issn"]')? document.querySelector('meta[name="issn"]').content : "";
         if (mf_issn == ""){
             mf_issn = document.querySelector('.uk-accordion-content')? document.querySelector('.uk-accordion-content').innerText.match(/ISSN: (\d+-\d+[a-zA-Z]+?)/)? document.querySelector('.uk-accordion-content').innerText.match(/ISSN: (\d+-\d+[a-zA-Z]+?)/)[1] : "" : "";
@@ -154,7 +157,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             lang = "eng";
         }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        let keywords = Array.from(document.querySelectorAll('.uk-article .uk-accordion-content .note')).map(elem => elem.innerText.trim()).filter(elem => elem.includes("KEYWORDS")).map(elem => elem.replace("KEYWORDS", "").trim().replaceAll("\n", ",")).join(", ")
+        let keywords = Array.from(document.querySelectorAll('.uk-article .uk-accordion-content .note')).map(elem => elem.innerText.trim()).filter(elem => elem.includes("KEYWORDS")).map(elem => elem.replace("KEYWORDS", "").trim().replaceAll("\n", ",").replaceAll("\t", "")).join(", ")
         // if (keywords == ""){
         //     keywords = getMetaAttributes(['meta[name="keywords"]'], 'content')
         // }   
@@ -166,7 +169,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstractArray = Array.from(document.querySelectorAll('.uk-article .note')).map(elem => elem.innerText).filter(elem => !elem.includes("KEYWORDS"))
+        const abstractArray = Array.from(document.querySelectorAll('.uk-article .note')).map(elem => elem.innerText.replaceAll("\n"," ").replaceAll("\t", "")).filter(elem => !elem.includes("KEYWORDS"))
         let abstract = "";
         if (abstractArray.length > 0){
             abstract = abstractArray[0];
@@ -205,8 +208,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '200': authors, '203': date, '81': abstract, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '243': book_series, '242': mf_book, '193': pages, '212': subtitle, '205': lang};
-        if (!mf_book)
+        var metadata = {'202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': mf_issn, '239': type, '235': publisher, '232': mf_journal, '205': lang, '201': keywords, '176': volume, '208': issue, '197': first_page, '198': last_page};
+        if (!title)
         {
             metadata = false
         }
@@ -254,8 +257,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         }
 
         if (isOpenAccess) {
-            pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".toolbar-inner-wrap .pdf")?document.querySelector(".toolbar-inner-wrap .pdf").href : "";
+            pdfLinksToDownload = await page.evaluate((url) => {
+                var pdfLinks = document.querySelector(".book-detail-button-bar > div:nth-child(3) a")? url : "";
                 if (!pdfLinks){
                     return null;
                 }
@@ -265,7 +268,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
                 // .map(a => a.href.replace("reader", "pdf") + "?download=true");
                 // return pdfLinks;
-            });
+            }, url);
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
             if (pdfLinksToDownload){
@@ -283,11 +286,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
         let page;
 
         try {
-            await changeTorIp();
-            await getCurrentIP();
+            //await changeTorIp();
+            //await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
+                //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -305,11 +308,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                     //await page.waitForTimeout(1000); // Задержка краулинга
 
-                    if (await shouldChangeIP(page)) {
-                        log(`Retrying after changing IP.`);
-                        // Продолжаем внутренний цикл с новым браузером
-                        continue mainLoop;
-                    }
+                    // if (await shouldChangeIP(page)) {
+                    //     log(`Retrying after changing IP.`);
+                    //     // Продолжаем внутренний цикл с новым браузером
+                    //     continue mainLoop;
+                    // }
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
@@ -338,7 +341,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             }
         } catch (error) {
             log(`Error during crawling: ${error.message}`);
-            await changeTorIp(); // Меняем IP при ошибке
+            //await changeTorIp(); // Меняем IP при ошибке
         } finally {
             if (browser) {
                 await browser.close(); // Закрываем текущий браузер
