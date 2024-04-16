@@ -33,6 +33,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         args: ['--proxy-server=127.0.0.1:8118'],
         headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
     });
+    let page = await browser.newPage();
 
     for (const link of links) {
         if (!link.trim()) {
@@ -42,16 +43,15 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         //     args: ['--proxy-server=127.0.0.1:8118'],
         //     headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
         // });
-        let page = await browser.newPage();
         const [pdfLink, pdfFileName] = link.trim().split(' ');
 
         const pdfSavePath = path.join(pdfFolderPath, pdfFileName);
         const tempDownloadPath = pdfSavePath.slice(0, -4);
         try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            await new Promise(resolve => setTimeout(resolve, 30000)); //timeout (waiting for the download to complete)
+            await new Promise(resolve => setTimeout(resolve, 50000)); //timeout (waiting for the download to complete)
             log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
-            await page.close();
+            //await page.close();
             await changeTorIp();
             const files = fs.readdirSync(tempDownloadPath);
             log(`Files found in ${tempDownloadPath}: ${files}`);
@@ -72,7 +72,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             }
         } catch (error) {
             log(`Cant download PDF file: ${error}`)
-            await page.close();
+            //await page.close();
             await changeTorIp();
             //await browser.close();
             await new Promise(resolve => setTimeout(resolve, 20000));
