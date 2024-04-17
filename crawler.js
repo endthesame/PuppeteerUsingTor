@@ -79,46 +79,37 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // Преобразование числа в строку и возвращение результата
             return result.toString();
         }
-
-        // let firstPage, lastPage, year;
-
-        // const tocHeadings = document.querySelectorAll('.article__tocHeading');
-
-        // tocHeadings.forEach(heading => {
-        //     const match = heading.textContent.match(/pp\. (\d+)-(\d+) \((\d{4})\)/) || [];
-        //     [_, firstPage, lastPage, year] = match.map(item => item || '');
-        // });
     
-        const title = document.querySelector('.citation__title')? document.querySelector('.citation__title').innerText : "";
-        let date = getMetaAttributes(['meta[name="dc.Date"]'], 'content') || "";
-        if (date == ""){
-            date = document.querySelector('.article__breadcrumbs')? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)? document.querySelector('.article__breadcrumbs').innerText.match(/\((\d{4})\)/)[1] : "" : "";
-        }
+        let date = document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.trim().match(/\d{4}/)? document.querySelector('.cover-date').innerText.trim().match(/\d{4}/)[0] : "" : "";
+        // if (date == ""){
+        //     date = 
+        // }
         if (date.length == 4){
             date = `${date}-01-01`;
         }
         const authors = Array.from(document.querySelectorAll('a.author-name')).map(elem => {return elem.title? elem.title : ""} ).join('; ') || "";
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content') || document.querySelector('.epub-section__doi__text')? document.querySelector('.epub-section__doi__text').href.replace('https://doi.org/', "") : "" || "";
-        const mf_book = document.querySelector('#pane-pcw-details .meta a')? document.querySelector('#pane-pcw-details .meta a').innerText : "";
+        let mf_doi = getMetaAttributes(['meta[name="publication_doi"]'], 'content');
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.epub-section__doi__text')? document.querySelector('.epub-section__doi__text').href.replace('https://doi.org/', "") : "";
+        }
+        let book_series_raw = document.querySelector('.meta__seriestitle')? document.querySelector('.meta__seriestitle').innerText.trim(): "";
+        let book_series = ""
+        let volume = ""
+        if (book_series_raw.includes(": Volume")){
+            book_series = book_series_raw.match(/(.*): Volume.*/)[1].trim();
+            volume = romanToNumberOrReturn(book_series_raw.match(/.*: Volume(.*)/)[1].trim());
+        } else {
+            book_series = book_series_raw;
+        }
+        let subtitle = document.querySelector('.meta__info .subtitle')? document.querySelector('.meta__info .subtitle').innerText.trim(): "";
+        const mf_book = document.querySelector('.meta__title')? document.querySelector('.meta__title').innerText.trim(): "";
+        const pages = document.querySelector('.pagecount')? document.querySelector('.pagecount').innerText.trim().match(/Pages: (\d+)/)? document.querySelector('.pagecount').innerText.trim().match(/Pages: (\d+)/)[1] : "": "";
         //const mf_issn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Print ISSN'))?.querySelector('a')?.textContent || '').trim();
         //const mf_eissn = (Array.from(document.querySelectorAll('.rlist li')).find(li => li.textContent.includes('Online ISSN'))?.querySelector('a')?.textContent || '').trim();
         //const publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content') || "";
         //const volume = (document.querySelector('.meta > strong > a')?.textContent.match(/Vol\. (\d+),/) || [])[1] || '';
         //const issue = (document.querySelector('.meta > strong > a')?.textContent.match(/No\. (\d+)/) || [])[1] || '';
-        let pagesPath = Array.from(document.querySelectorAll('.article__tocHeading')).map(elem => elem.innerText).filter(elem => elem.includes("pp."));
-        let first_page = '';
-        let last_page = '';
 
-        if (pagesPath.length >= 1){
-            let pages = pagesPath[0].match(/pp. (\S+)-(\S+)/) || pagesPath[0].match(/pp. (\S+) \(/) || [];
-            if (pages.length >= 3){
-                first_page = romanToNumberOrReturn(pages[1]);
-              last_page = romanToNumberOrReturn(pages[2]);
-            } else if(pages.length == 2){
-                first_page = romanToNumberOrReturn(pages[1]);
-              last_page = romanToNumberOrReturn(pages[1]);
-            }
-        }
         let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content') || "";
         if (language == "en"){
             language = "eng";
@@ -142,7 +133,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
         var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, "242": mf_book, "205": language, "201": keywords, '81': abstract, '197': first_page, '198': last_page};
-        if (!title)
+        if (!mf_book)
         {
             metadata = false
         }
