@@ -11,6 +11,7 @@ async function main() {
         const siteFolderPath = path.join(outputFolderPath, hostNameForDir);
         const jsonFolderPath = path.join(siteFolderPath, 'jsons');
         const pdfFolderPath = path.join(siteFolderPath, 'pdfs');
+        const htmlFolderPath = path.join(siteFolderPath, 'htmls');
         const linksFilePath = path.join(siteFolderPath, 'remaining_links.txt');
 
         // Создать структуру папок, если они не существуют
@@ -18,12 +19,13 @@ async function main() {
         if (!fs.existsSync(siteFolderPath)) fs.mkdirSync(siteFolderPath);
         if (!fs.existsSync(jsonFolderPath)) fs.mkdirSync(jsonFolderPath);
         if (!fs.existsSync(pdfFolderPath)) fs.mkdirSync(pdfFolderPath);
+        if (!fs.existsSync(htmlFolderPath)) fs.mkdirSync(htmlFolderPath);
 
         // Копировать файл с ссылками
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
+        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = true);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);

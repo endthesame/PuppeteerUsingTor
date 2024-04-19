@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -194,6 +194,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
+    const htmlSource = await page.content();
+    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+      if (err) {
+        console.error('Error saving HTML to file:', err);
+      } else {
+        console.log('HTML saved to file successfully');
+      }
+    });
+
     if (downloadPDFmark) {
         let isOpenAccess = true;
         if (checkOpenAccess) {
@@ -230,7 +239,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     return true;
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -273,7 +282,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
                     //ИЗМЕНЕНО ДЛЯ COLAB: ЕСЛИ НЕ НАЙДЕНО ЧТО-ТО ИЗ ВАЖНОЕ ИЗ МЕТЫ ТО СТОПИТСЯ ПРОЦЕСС
-                    var isOkay = await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    var isOkay = await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
 
                     if (isOkay) {
                         log(`Successfully processed ${url}`);
