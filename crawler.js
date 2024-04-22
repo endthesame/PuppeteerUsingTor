@@ -113,21 +113,62 @@ async function extractMetafields(page) {
 
         let authors = Array.from(document.querySelectorAll('meta[name="parsely-author"]')).map(elem => elem.content.trim().replace(";", "")).join("; ")
         if (authors == ""){
-            authors = Array.from(document.querySelectorAll('.authors-info')).map(elem => elem.innerText.trim().replace(";", "")).join("; ")
+            let rawAuthors = document.querySelector('.authors-info-container')?document.querySelector('.authors-info-container').innerText : "";
+            if (!rawAuthors.includes("Editor")){
+                authors = Array.from(document.querySelectorAll('.authors-info')).map(elem => elem.innerText.trim().replace(";", "")).join("; ")
+            }
+            if (authors == ""){
+                mf_dict.author?.forEach(function(author, index) {
+                    // Проверяем, есть ли у автора аффиляции
+                    if (author?.name?.length > 0) {
+                        // Добавляем в переменную affiliations имя автора и его аффиляции в нужном формате
+                        authors += author.name;
+                        // Добавляем ";;" после каждого автора, кроме последнего
+                        if (index !== mf_dict.author.length - 1) {
+                            authors += '; ';
+                        }
+                    }
+                });
+            }
         }
-
         let author_aff = "";
         mf_dict.author?.forEach(function(author, index) {
             // Проверяем, есть ли у автора аффиляции
             if (author?.affiliation?.length > 0) {
                 // Добавляем в переменную affiliations имя автора и его аффиляции в нужном формате
-                author_aff += author.name + ": " + author.affiliation.join('!');
+                author_aff += author.name + ":" + author.affiliation.join('!');
                 // Добавляем ";;" после каждого автора, кроме последнего
                 if (index !== mf_dict.author.length - 1) {
                     author_aff += ";; ";
                 }
             }
         });
+
+        let editors = ""
+        mf_dict.editor?.forEach(function(editor, index) {
+            // Проверяем, есть ли у автора аффиляции
+            if (editor?.name?.length > 0) {
+                // Добавляем в переменную affiliations имя автора и его аффиляции в нужном формате
+                editors += editor.name;
+                // Добавляем ";;" после каждого автора, кроме последнего
+                if (index !== mf_dict.editor.length - 1) {
+                    editors += '; ';
+                }
+            }
+        });
+        let editors_aff = ""
+        mf_dict.editor?.forEach(function(editor, index) {
+            // Проверяем, есть ли у автора аффиляции
+            if (editor?.affiliation?.length > 0) {
+                // Добавляем в переменную affiliations имя автора и его аффиляции в нужном формате
+                editors_aff += editor.name + ":" + editor.affiliation.join('!');
+                // Добавляем ";;" после каждого автора, кроме последнего
+                if (index !== mf_dict.editor.length - 1) {
+                    editors_aff += ";; ";
+                }
+            }
+        });
+
         let mf_doi = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/DOI: (10.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/DOI: (10.*)/)[1] : "" : "";
         if (mf_doi == ""){
             mf_doi = mf_dict["doi"] || "";
@@ -278,7 +319,7 @@ async function extractMetafields(page) {
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '200': authors, '203': date, '81': abstract, '240': mf_isbn, '241': mf_eisbn, '201': keywords, '239': type, '235': publisher, '144': author_aff, '242': mf_book, '193': pages, '233': mf_doi};
+        var metadata = { '200': authors, '203': date, '81': abstract, '240': mf_isbn, '241': mf_eisbn, '201': keywords, '239': type, '235': publisher, '144': author_aff, '242': mf_book, '193': pages, '233': mf_doi, '207': editors, '146': editors_aff};
         if (!mf_book)
         {
             metadata = false
