@@ -117,7 +117,7 @@ async function extractMetafields(page) {
         }
 
         let author_aff = "";
-        mf_dict.author.forEach(function(author, index) {
+        mf_dict.author?.forEach(function(author, index) {
             // Проверяем, есть ли у автора аффиляции
             if (author?.affiliation?.length > 0) {
                 // Добавляем в переменную affiliations имя автора и его аффиляции в нужном формате
@@ -366,11 +366,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
         let page;
 
         try {
-            await changeTorIp();
-            await getCurrentIP();
+            //await changeTorIp();
+            //await getCurrentIP();
 
             browser = await puppeteer.launch({
-                args: ['--proxy-server=127.0.0.1:8118'],
+                //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
@@ -388,11 +388,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                     //await page.waitForTimeout(1000); // Задержка краулинга
 
-                    if (await shouldChangeIP(page)) {
-                        log(`Retrying after changing IP.`);
-                        // Продолжаем внутренний цикл с новым браузером
-                        continue mainLoop;
-                    }
+                    // if (await shouldChangeIP(page)) {
+                    //     log(`Retrying after changing IP.`);
+                    //     // Продолжаем внутренний цикл с новым браузером
+                    //     continue mainLoop;
+                    // }
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
@@ -421,7 +421,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             }
         } catch (error) {
             log(`Error during crawling: ${error.message}`);
-            await changeTorIp(); // Меняем IP при ошибке
+            //await changeTorIp(); // Меняем IP при ошибке
         } finally {
             if (browser) {
                 await browser.close(); // Закрываем текущий браузер
