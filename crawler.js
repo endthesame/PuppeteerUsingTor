@@ -263,7 +263,7 @@ async function extractMetafields(page) {
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = mf_dict["abstract"].replaceAll(/<[^>]+>/g, '') || ""
+        const abstract = mf_dict["abstract"]?.replaceAll(/<[^>]+>/g, '') || ""
         // let raw_affiliation = Array.from(document.querySelectorAll('.wi-authors .info-card-author'))
         // .filter(elem => {
         //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
