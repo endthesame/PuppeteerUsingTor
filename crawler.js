@@ -32,13 +32,16 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         };
     
         const title = getMetaAttributes(['meta[name="dc.Title"]'], 'content');
-        const date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
+        let date = document.querySelector('meta[name="dc.Date"]')? document.querySelector('meta[name="dc.Date"]').content.match(/\d{4}/)? document.querySelector('meta[name="dc.Date"]').content.match(/\d{4}/)[0] : "": "";
+        if (date == ""){
+            date = document.querySelector('.epub-section__date')? document.querySelector('.epub-section__date').innerText.match(/\d{4}/)? document.querySelector('.epub-section__date').innerText.match(/\d{4}/)[0] : "": "";
+        }
         var authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         if (!authors){
             var rawAuthors = Array.from(document.querySelectorAll('.author-name')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
-        const mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content');
+        const mf_doi = document.querySelector('meta[scheme="doi"]')? document.querySelector('meta[scheme="doi"]').content : "";
         const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         const mf_issn = document.querySelector('.article__info .rlist')? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)? document.querySelector('.article__info .rlist').innerText.match(/Print ISSN:(\d+-\d+[A-Za-z]?)/)[1] : "" : "";
         const mf_eissn = document.querySelector('.article__info .rlist')? document.querySelector('.article__info .rlist').innerText.match(/Online ISSN:(\d+-\d+[A-Za-z]?)/)? document.querySelector('.article__info .rlist').innerText.match(/Online ISSN:(\d+-\d+[A-Za-z]?)/)[1] : "" : "";
