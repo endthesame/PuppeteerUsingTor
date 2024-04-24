@@ -80,6 +80,9 @@ async function extractMetafields(page) {
     
         const title = document.querySelector('.col-md-7 h1.h3')? document.querySelector('.col-md-7 h1.h3').innerText : "";
         let date = document.querySelector('.btn-info')? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*([0-9-]+),\s*(\d{4})/)? document.querySelector('.btn-info').getAttribute('data-content').trim().match(/\s*<br \/>eISBN:\s*([0-9-]+),\s*(\d{4})/)[2] : "" : "";
+        if (date == ""){
+            date = document.querySelector('.mt-3 > p:nth-child(3)')? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\n?eISBN:\s*([0-9-]+),\s*(\d{4})/)? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\n?eISBN:\s*([0-9-]+),\s*(\d{4})/)[2] : "" : "";
+        }
         if (date.length == 4){
             date = `${date}-01-01`;
         }
@@ -97,8 +100,14 @@ async function extractMetafields(page) {
         const mf_book_part = [first_part_mf_book, second_part_mf_book, third_part_mf_book]  
         const mf_book = mf_book_part.filter(elem => elem != "").join(", ")
         
-        const mf_isbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*([0-9-]+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*([0-9-]+)\s*/)[1] : "" : "";
-        const mf_eisbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*([0-9-]+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*([0-9-]+)\s*/)[1] : "" : "";
+        let mf_isbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*([0-9-]+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISBN:\s*([0-9-]+)\s*/)[1] : "" : "";
+        if (mf_isbn == ""){
+            mf_isbn = document.querySelector('.mt-3 > p:nth-child(3)')? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\nISBN:\s*([0-9-]+)/)? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\nISBN:\s*([0-9-]+)/)[1] : "" : "";
+        }
+        let mf_eisbn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*([0-9-]+)\s*/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>eISBN:\s*([0-9-]+)\s*/)[1] : "" : "";
+        if (mf_eisbn == ""){
+            mf_eisbn = document.querySelector('.mt-3 > p:nth-child(3)')? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\n?eISBN:\s*([0-9-]+),\s*(\d{4})/)? document.querySelector('.mt-3 > p:nth-child(3)').innerText.trim().match(/\n?eISBN:\s*([0-9-]+),\s*(\d{4})/)[1] : "" : "";
+        }
         const mf_issn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Print\)/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Print\)/)[1] : "" : "";
         const mf_eissn = document.querySelector('a[data-original-title="Book Details"]')?document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Online\)/)? document.querySelector('a[data-original-title="Book Details"]').getAttribute('data-content').match(/<br \/>ISSN:\s+?(\d+-[0-9A-Za-z]+)\s+?<strong>\(Online\)/)[1] : "" : "";
         const publisher = document.querySelector('#CiteWindow .table')? document.querySelector('#CiteWindow .table').innerText.match(/Publisher Name(.*)/)? document.querySelector('#CiteWindow .table').innerText.match(/Publisher Name(.*)/)[1].trim() : "" : "";
