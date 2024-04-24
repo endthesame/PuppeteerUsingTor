@@ -36,6 +36,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         if (date == ""){
             date = document.querySelector('.epub-section__date')? document.querySelector('.epub-section__date').innerText.match(/\d{4}/)? document.querySelector('.epub-section__date').innerText.match(/\d{4}/)[0] : "": "";
         }
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
         var authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         if (!authors){
             var rawAuthors = Array.from(document.querySelectorAll('.author-name')).map(elem => elem.innerText)
@@ -159,9 +162,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-                    //await page.waitForTimeout(3000); // Задержка краулинга
+                    await page.waitForTimeout(1000); // Задержка краулинга
 
                     // if (await shouldChangeIP(page)) {
                     //     log(`Retrying after changing IP.`);
