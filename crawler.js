@@ -251,10 +251,16 @@ async function extractMetafields(page) {
         // }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         //let rawKeywords =Array.from(document.querySelectorAll('#keywords_list .intent_text')).map(elem => elem.innerText.replaceAll(",", "").trim())
-        let keywords = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Topics: (.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Topics: (.*)/)[1].trim() : "" : "";
+        let keywords = "";
+        if (mf_dict.keywords && mf_dict.keywords[0] && mf_dict.keywords[0].kwd) {
+            keywords = mf_dict.keywords[0].kwd.join(";");
+        }
         if (keywords == ""){
-            keywords = mf_dict["topics"] || ""
-        }   
+            keywords = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Topics: (.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Topics: (.*)/)[1].trim() : "" : "";
+            if (keywords == ""){
+                keywords = mf_dict["topics"] || ""
+            }  
+        } 
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
