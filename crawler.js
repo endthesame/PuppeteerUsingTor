@@ -84,9 +84,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (title == ""){
         //     title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.trim() : "";
         // }
-        let date = document.querySelector('meta[name="citation_publication_date"]')? document.querySelector('meta[name="citation_publication_date"]').content.match(/\d{4}/)? document.querySelector('meta[name="citation_publication_date"]').content.match(/\d{4}/)[0] : "" : "";
+        let date = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/Published.*(\d{4})/) ? document.querySelector('.published-info').innerText.trim().match(/Published.*(\d{4})/)[1] : "" : "";
         if (date == ""){
-            date = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"datePublished":"(\d{4})"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"datePublished":"(\d{4})"/)[1] : "" : "";
+            date = 
         }
         if (date.length == 4){
             date = `${date}-01-01`;
@@ -98,9 +98,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
         }
 
-        let mf_doi = document.querySelector('meta[name="citation_doi"]')? document.querySelector('meta[name="citation_doi"]').content : "";
+        let mf_doi = document.querySelector('meta[name="publication_doi"]')? document.querySelector('meta[name="publication_doi"]').content.trim() : "";
         if (mf_doi == ""){
-            mf_doi = "" //document.querySelector('.book-info__doi-link')? document.querySelector('.book-info__doi-link').innerText.replace("https://doi.org/", "") : "";
+            mf_doi = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/) ? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/)[1].replace("https://doi.org/", "") : "" : "";
         }
 
         let mf_book = "";
@@ -119,9 +119,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         let book_series = document.querySelector('.series')? document.querySelector('.series').innerText.replace("SERIES","").trim() : "";
 
-        let mf_isbn = document.querySelector('.uk-article-isbn')? document.querySelector('.uk-article-isbn').innerText.replace("ISBN:", "").trim() : "";
+        let mf_isbn = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/ISBN:([0-9-]+)/) ? document.querySelector('.published-info').innerText.trim().match(/ISBN:([0-9-]+)/)[1] : "" : "";
         if (mf_isbn == ""){
-            mf_isbn = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"isbn":"([0-9-]+)"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"isbn":"([0-9-]+)"/)[1] : "" : "";
+            mf_isbn = 
         }
         // if (mf_isbn == ""){
         //     printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Paperback ISBN:"));
@@ -206,7 +206,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.note .uk-list')? document.querySelector('.note .uk-list').innerText.replaceAll("\n", "").replaceAll("\t", "").replace("Special access authorizations may apply; please contact us for further information.","").trim() : "";
+        const abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ") : "";
         // let raw_affiliation = Array.from(document.querySelectorAll('.book-info__authors .authors .al-author-name .info-card-author'))
         // .filter(elem => {
         //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
