@@ -144,7 +144,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // if (publisher == ""){
         //     publisher = document.querySelector('.uk-article-place a')? document.querySelector('.uk-article-place a').innerText.trim() : "";
         // }
-        let volume = document.querySelector('.meta__vol')? document.querySelector('.meta__vol').innerText.match(/\d+/)? document.querySelector('.meta__vol').innerText.match(/\d+/)[0] : "" : "";
+        //let volume = document.querySelector('.meta__vol')? document.querySelector('.meta__vol').innerText.match(/\d+/)? document.querySelector('.meta__vol').innerText.match(/\d+/)[0] : "" : "";
         // if (volume == "" && document.querySelector('.book-info__title').innerText.toLowerCase().includes("volume")){
         //     volume = 
         // }
@@ -201,7 +201,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ") : "";
+        const abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ").replaceAll("No abstract available.", "") : "";
         // let raw_affiliation = Array.from(document.querySelectorAll('.book-info__authors .authors .al-author-name .info-card-author'))
         // .filter(elem => {
         //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
@@ -236,7 +236,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '200': authors, '203': date, '81': abstract, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '242': mf_book, '193': pages, '207': editors, '176': volume};
+        var metadata = { '200': authors, '203': date, '81': abstract, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '242': mf_book, '193': pages, '207': editors};
         if (!mf_book)
         {
             metadata = false
