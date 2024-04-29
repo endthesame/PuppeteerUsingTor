@@ -19,4 +19,18 @@ async function getCurrentIP() {
     });
 }
 
-module.exports = {getCurrentIP};
+
+async function checkAccess(page) {
+    return await page.evaluate(() => {
+        const classesToCheck = ['.free-access', '.open-access', '.icon-availability_open', '.meta-panel__access--free', '.meta-panel__access--open'];
+        for (const classSelector of classesToCheck) {
+            const elements = document.querySelectorAll(classSelector);
+            if (elements.length > 0) {
+                return true; // Нашли хотя бы один элемент
+            }
+        }
+        return false; // Не нашли ни одного элемента
+    });
+}
+
+module.exports = {getCurrentIP, checkAccess};
