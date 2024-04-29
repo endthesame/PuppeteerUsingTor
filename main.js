@@ -18,6 +18,7 @@ async function main() {
             .option('-o, --output <path>', 'path to output filder', path.join(__dirname, 'output'))
             .option('-d, --download_pdf', 'type this if you want to download pdfs')
             .option('-oa, --open_access', 'type this if you want to check open access before download')
+            .option('-t, --use_tor', 'type this if you want to use tor for crawling')
 
         program.parse();
 
@@ -40,7 +41,7 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = false, checkOpenAccess = false);
+        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = program.opts().download_pdf, checkOpenAccess = program.opts().open_access, useTor=program.opts().use_tor);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
