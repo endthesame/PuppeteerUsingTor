@@ -12,6 +12,15 @@ puppeteer.use(StealhPlugin());
 
 async function extractMetafields(page) {
     const meta_data = await page.evaluate(() => {
+        const getMetaAttribute = (selector, attribute, childSelector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                return targetElement.getAttribute(attribute) || "";
+            }
+            return "";
+        };
+        
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
             for (const selector of selectors) {
