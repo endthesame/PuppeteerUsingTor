@@ -104,12 +104,16 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             if (useTor) {
                 await changeTorIp();
                 await getCurrentIP();
+                browser = await puppeteer.launch({
+                    args: ['--proxy-server=127.0.0.1:8118'],
+                    headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                });
+            } else {
+                browser = await puppeteer.launch({
+                    //args: ['--proxy-server=127.0.0.1:8118'],
+                    headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                });
             }
-
-            browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
-            });
 
             page = await browser.newPage();
             await page.setViewport({ width: 1920, height: 1080 });
@@ -121,8 +125,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
+                    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     //await page.waitForTimeout(1000); // Задержка краулинга
 
                     if (useTor && await shouldChangeIP(page)) {

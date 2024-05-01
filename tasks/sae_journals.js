@@ -92,17 +92,24 @@ module.exports = function extractMetadata() {
         title = getMetaAttribute(['meta[name="citation_title"]'], 'content');
     }
     let date = getMetaAttribute(['meta[name="citation_date"]'], 'content').match(/\d{4}/)?.[0] || '';
+    if (date === "") {
+        date = document.querySelector('.si-masthead__b__item.si-published')? document.querySelector('.si-masthead__b__item.si-published').innerText.match(/\d{4}/)? document.querySelector('.si-masthead__b__item.si-published').innerText.match(/\d{4}/)[0] : "" : "";
+    }
     if (date.length == 4) {
         date = `${date}-01-01`;
     }
-    let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content')
+    let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') // ДУБЛИРУЕТСЯ МЕТА - ФИКС НУЖНО СДЕЛАТЬ
+    if (authors == ""){
+        let rawAuthors = Array.from(document.querySelectorAll('a[data-analytics="item-detail-author-card-author-btn"]')).map(author => author.innerText.trim())
+        authors = [... new Set(rawAuthors)].join('; ')
+    }
     let doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content')
     let lang = getMetaAttribute(['meta[name="citation_language"]'], 'content')
     if (lang === 'English'){
         lang = 'eng';
     }
     let publisher = getMetaAttribute(['meta[name="citation_publisher"]'], 'content')
-    let mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText : "";
+    let mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText.trim() : "";
     let print_issn = "";
     let e_issn = "";
     let rawArr = Array.from(document.querySelectorAll('meta[name="citation_issn"]')).map(elem => elem.content)
@@ -114,8 +121,25 @@ module.exports = function extractMetadata() {
     if (issns.length == 1){
         print_issn = issns[0]
     }
-    
+    let abstract = document.querySelector('#cdk-accordion-child-1 .si-data .si-data__set.si-wd-full .si-dataout__c')? document.querySelector('#cdk-accordion-child-1 .si-data .si-data__set.si-wd-full .si-dataout__c').innerText.trim() : "";
+    let author_aff = Array.from(document.querySelectorAll('.si-authors .mat-card-header-text')).filter(elem => {
+        let author = elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]').innerText : "";
+        let aff = elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]').innerText : "";
+        if (author.length > 1 && aff.length > 1){
+            return true;
+        } else {
+            return false;
+        }
+    }).map(elem => {
+        let author = elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]').innerText : "";
+        let aff = elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]').innerText : "";
+        if (author.length > 1 && aff.length > 1){
+            return `${author}:${aff}`
+        }
+    }).join(";; ")
+    let rawTopics = Array.from(document.querySelectorAll('[arialabel="Topics"] .ng-star-inserted')).map(elem => elem.innerText)
+    let topics = [... new Set(rawTopics)].join(';') 
 
-    var metadata = { '202': title, '200': authors, '233':doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang};
+    var metadata = { '202': title, '200': authors, '233':doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics};
     return metadata;
 };
