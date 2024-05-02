@@ -10,7 +10,7 @@ async function main() {
         const program = new Command()
         program
             .name('Crawler')
-            .description('CLI')
+            .description('Puppeteer crawler using node.js. You can crawl metadata using or own task; download pdfs; check open acces; etc')
             .version('0.0.1');
 
         program
@@ -20,6 +20,7 @@ async function main() {
             .option('-oa, --open_access', 'type this if you want to check open access before download')
             .option('-t, --use_tor', 'type this if you want to use tor for crawling')
             .option('-e, --task <path>', 'path to task extractor', path.join(__dirname, 'tasks/sample_task.js'))
+            .helpOption('-e, --HELP', 'read more information');
 
         program.parse();
 
