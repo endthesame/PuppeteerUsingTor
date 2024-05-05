@@ -14,10 +14,6 @@ async function extractMetafields(page, task_path) {
     const getTaskForMFExtractor = require(task_path);
     let meta_data = await page.evaluate(getTaskForMFExtractor);
     if (typeof meta_data === 'object' && meta_data !== null) {
-        if (!meta_data["202"])
-        {
-            meta_data = false
-        }
         return meta_data;
     } else {
         return null;

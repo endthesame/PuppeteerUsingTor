@@ -141,5 +141,9 @@ module.exports = function extractMetadata() {
     let topics = [... new Set(rawTopics)].join(';') 
 
     var metadata = { '202': title, '200': authors, '233':doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics};
+    if (!metadata["202"])
+    {
+        metadata = false
+    }
     return metadata;
 };

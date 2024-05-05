@@ -93,5 +93,9 @@ module.exports = function extractMetadata() {
     
 
     var metadata = { '202': title, '200': authors, '233':doi};
+    if (!metadata["202"])
+    {
+        metadata = false
+    }
     return metadata;
 };
