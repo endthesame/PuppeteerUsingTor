@@ -45,7 +45,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         const tempDownloadPath = pdfSavePath.slice(0, -4);
         try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            await new Promise(resolve => setTimeout(resolve, 5000)); //timeout (waiting for the download to complete)
+            await new Promise(resolve => setTimeout(resolve, 10000)); //timeout (waiting for the download to complete)
             log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
             await page.close();
             const files = fs.readdirSync(tempDownloadPath);
@@ -96,7 +96,7 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         downloadButton.click();
         downloadButton.remove();
     }, pdfLink);
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
     // Ожидание завершения скачивания
     //await page.waitForTimeout(6000);
 }
