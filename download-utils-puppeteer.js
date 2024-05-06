@@ -30,7 +30,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     let browser = await puppeteer.launch({
-        //args: ['--proxy-server=127.0.0.1:8118'],
+        args: ['--proxy-server=127.0.0.1:8118'],
         headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
     });
 
@@ -45,7 +45,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         const tempDownloadPath = pdfSavePath.slice(0, -4);
         try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            await new Promise(resolve => setTimeout(resolve, 5000)); //timeout (waiting for the download to complete)
+            await new Promise(resolve => setTimeout(resolve, 120000)); //timeout (waiting for the download to complete)
             log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
             await page.close();
             const files = fs.readdirSync(tempDownloadPath);
@@ -70,7 +70,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
             await browser.close();
             await new Promise(resolve => setTimeout(resolve, 20000));
             browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
+                args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
         }
@@ -96,9 +96,9 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         downloadButton.click();
         downloadButton.remove();
     }, pdfLink);
-
+    await new Promise(resolve => setTimeout(resolve, 10000));
     // Ожидание завершения скачивания
-    await page.waitForTimeout(6000);
+    //await page.waitForTimeout(6000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };
