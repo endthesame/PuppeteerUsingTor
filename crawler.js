@@ -164,11 +164,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         } 
         if (!print_issn && !e_issn){
             if (issns.length == 1){
-                print_issn = issns[0];
+                print_issn = issns[0].content;
             }
             if (issns.length > 1){
-                print_issn = issns[0];
-                e_issn = issns[1];
+                print_issn = issns[0].content;
+                e_issn = issns[1].content;
             }
         }
         let publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content')
@@ -202,7 +202,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         // let rawKeywords =Array.from(document.querySelectorAll('#keywords_list .intent_text')).map(elem => elem.innerText.replaceAll(",", "").trim())
         let keywords = "";
-        if (document.querySelector('.detail-page .metadata-box') &&document.querySelector('.detail-page .metadata-box').innerText.includes("Keywords")){
+        if (document.querySelector('.detail-page .metadata-box') && document.querySelector('.detail-page .metadata-box').innerText.includes("Keywords")){
             keywords = document.querySelector('.detail-page .metadata-box .keywords')? document.querySelector('.detail-page .metadata-box .keywords').innerText.trim().replaceAll("\n", "; ") : "";
         }
         if (keywords == "" && bookData.keywords){
