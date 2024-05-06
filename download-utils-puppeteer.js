@@ -96,9 +96,9 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         downloadButton.click();
         downloadButton.remove();
     }, pdfLink);
-
+    await new Promise(resolve => setTimeout(resolve, 10000));
     // Ожидание завершения скачивания
-    await page.waitForTimeout(6000);
+    //await page.waitForTimeout(6000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };
