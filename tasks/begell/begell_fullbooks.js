@@ -130,6 +130,9 @@ module.exports = function extractMetadata() {
     let mf_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Print:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Print:\n?([0-9-]+)/)[1] : "": "";
     let mf_eisbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Online:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Online:\n?([0-9-]+)/)[1] : "": "";
     if (mf_isbn == ""){
+        mf_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN CD:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN CD:\n?([0-9-]+)/)[1] : "": "";
+    }
+    if (mf_isbn == ""){
         let possible_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Print:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Print:\n?([0-9-]+)/)[1] : "": "";
         if (possible_isbn.length >= 10){
             mf_isbn = possible_isbn
@@ -161,7 +164,10 @@ module.exports = function extractMetadata() {
     // const last_page = romanToNumberOrReturn(getMetaAttributes(['meta[name="citation_lastpage"]'], 'content'));
     const pages = document.querySelector('.common-text')? document.querySelector('.common-text').innerText.match(/(\d+) pages,/)? document.querySelector('.common-text').innerText.match(/(\d+) pages,/)[1] : "" : "";
     const type = 'book';
-    const abstract = document.querySelector('.common-text')? document.querySelector('.common-text').innerText.trim(): "";
+    let abstract = document.querySelector('.common-text')? document.querySelector('.common-text').innerText.trim(): "";
+    if (abstract == ""){
+        abstract = Array.from(document.querySelectorAll('.common-columns > .common-rows p')).map(elem => elem.innerText.trim()).join(" ")
+    }
     // var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
     //     return element !== "" && element !== " ";
     //   }).join("; ");
