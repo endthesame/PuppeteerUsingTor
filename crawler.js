@@ -102,14 +102,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             return finalResult;
         }
     
-        let title = document.querySelector('.main-title')? document.querySelector('.main-title').innerText.trim() : "";
+        let title = document.querySelector('.article-title')? document.querySelector('.article-title').innerText.trim() : "";
 
-        let date = "";
+        let date = document.querySelector('meta[name="citation_date"]')? document.querySelector('meta[name="citation_date"]').content.trim().match(/\d{4}/)? document.querySelector('meta[name="citation_date"]').content.trim().match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
 
-        let rawAuthors = Array.from(document.querySelectorAll('.common-text .article-authors-list p strong')).map(author => author.innerText.trim())
+        let rawAuthors = Array.from(document.querySelectorAll('.article-authors .article-author b')).map(author => author.innerText.trim())
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
 
         let author_aff = Array.from(document.querySelectorAll('.common-text .article-authors-list p')).map(elem => {
@@ -323,7 +323,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 try {
                     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-                    await page.waitForTimeout(1000); // Задержка краулинга
+                    //await page.waitForTimeout(1000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
