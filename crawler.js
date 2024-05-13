@@ -10,7 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
         const getMetaAttributes = (selectors, attribute, childSelector) => {
@@ -160,6 +160,30 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             }
         }
 
+        let mf_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Print:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Print:\n?([0-9-]+)/)[1] : "": "";
+        let mf_eisbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Online:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN Online:\n?([0-9-]+)/)[1] : "": "";
+        if (mf_isbn == ""){
+            mf_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN CD:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN CD:\n?([0-9-]+)/)[1] : "": "";
+        }
+        if (mf_isbn == ""){
+            let possible_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Print:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Print:\n?([0-9-]+)/)[1] : "": "";
+            if (possible_isbn.length >= 10){
+                mf_isbn = possible_isbn
+            }
+        }
+        if (mf_isbn == ""){
+            mf_isbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN:\n?([0-9-]+)/)[1] : "": "";
+        }
+        if (mf_eisbn == ""){
+            let possible_eisbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Online:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISSN Online:\n?([0-9-]+)/)[1] : "": "";
+            if (possible_eisbn.length >= 10){
+                mf_eisbn = possible_eisbn
+            }
+        }
+        if (mf_eisbn == ""){
+            mf_eisbn = document.querySelector('.product-head-serials')? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN online:\n?([0-9-]+)/)? document.querySelector('.product-head-serials').innerText.trim().match(/ISBN online:\n?([0-9-]+)/)[1] : "": "";
+        }
+
         let publisher = document.querySelector('meta[name="citation_publisher"]')? document.querySelector('meta[name="citation_publisher"]').content.trim() : "";
         
         let first_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[1] : "" : "");
@@ -197,7 +221,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': print_issn, '185': e_issn, '201': keywords, '239': type, '232': mf_journal, '235': publisher, '144': author_aff, '176': volume, '208': issue, '205': language, '197': first_page, '198': last_page};
+        var metadata = { '202': title, '200': authors, '203': date, '81': abstract, '233': mf_doi, '184': print_issn, '185': e_issn, '201': keywords, '239': type, '232': mf_journal, '235': publisher, '144': author_aff, '176': volume, '208': issue, '205': language, '197': first_page, '198': last_page, '240': mf_isbn, '241': mf_eisbn};
         if (!title)
         {
             metadata = false
@@ -224,6 +248,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     const jsonFilePath = path.join(jsonFolderPath, jsonFileName);
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
+
+    const htmlSource = await page.content();
+    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+      if (err) {
+        console.error('Error saving HTML to file:', err);
+      } else {
+        console.log('HTML saved to file successfully');
+      }
+    });
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
@@ -260,7 +293,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -296,7 +329,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, siteFolderPath, linksFilePat
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
