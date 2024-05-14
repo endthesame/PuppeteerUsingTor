@@ -189,16 +189,29 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let first_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[1] : "" : "");
         let last_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)? document.querySelector('.article-details').innerText.match(/pp. ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[2] : "" : "");
         if (first_page == "" && last_page == ""){
-            first_page = document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/pages (\d+)-(\d+)/)?document.querySelector('.article-details').innerText.trim().match(/pages (\d+)-(\d+)/)[1] : "" : "";
-            last_page = document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/pages (\d+)-(\d+)/)?document.querySelector('.article-details').innerText.trim().match(/pages (\d+)-(\d+)/)[2] : "" : "";
+            first_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)?document.querySelector('.article-details').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[1] : "" : "");
+            last_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)?document.querySelector('.article-details').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[2] : "" : "");
             if (first_page == "" && last_page == ""){
-                first_page = document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/page (\d+)/)?document.querySelector('.article-details').innerText.trim().match(/page (\d+)/)[1] : "" : "";
-                last_page = document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/page (\d+)/)?document.querySelector('.article-details').innerText.trim().match(/page (\d+)/)[1] : "" : "";
+                first_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/page ([a-zA-Z0-9]+)/)?document.querySelector('.article-details').innerText.trim().match(/page ([a-zA-Z0-9]+)/)[1] : "" : "");
+                last_page = romanToNumberOrReturn(document.querySelector('.article-details')? document.querySelector('.article-details').innerText.trim().match(/page ([a-zA-Z0-9]+)/)?document.querySelector('.article-details').innerText.trim().match(/page ([a-zA-Z0-9]+)/)[1] : "" : "");
+            }
+            if (first_page == "" && last_page == ""){
+                first_page = romanToNumberOrReturn(document.querySelector('.article-pages')? document.querySelector('.article-pages').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)?document.querySelector('.article-pages').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[1] : "" : "");
+                last_page = romanToNumberOrReturn(document.querySelector('.article-pages')? document.querySelector('.article-pages').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)?document.querySelector('.article-pages').innerText.trim().match(/pages ([a-zA-Z0-9]+)-([a-zA-Z0-9]+)/)[2] : "" : "");
             }
         }
         const volume = document.querySelector('meta[name="citation_volume"]')? document.querySelector('meta[name="citation_volume"]').content.trim() : "";
         const issue = document.querySelector('meta[name="citation_issue"]')? document.querySelector('meta[name="citation_issue"]').content.trim() : "";
-        const keywords = document.querySelector('meta[name="keywords"]')? document.querySelector('meta[name="keywords"]').content.trim().replaceAll(", ", "; ") : "";
+        let keywords = document.querySelector('meta[name="keywords"]')? document.querySelector('meta[name="keywords"]').content.trim().replaceAll(", ", "; ") : "";
+        if (keywords == ""){
+            keywords = document.querySelector('.article-keywords')? document.querySelector('.article-keywords').innerText.trim().replace("KEY WORDS:", "").trim().replaceAll(", ", "; ") : "";
+        }
+        if (keywords == ""){
+            keywords = document.querySelector('meta[name="citation_keywords"]')? document.querySelector('meta[name="citation_keywords"]').content.trim().replaceAll(", ", "; ") : "";
+        }
+        if (keywords == ""){
+            keywords = document.querySelector('.search_keywords')? document.querySelector('.search_keywords').innerText.trim().replace("KEY WORDS:", "").trim().replaceAll(", ", "; ") : "";
+        }
         let language = document.querySelector('meta[name="citation_language"]')? document.querySelector('meta[name="citation_language"]').content.trim() : "";
         if (language == "English"){
             language = "eng";
@@ -318,7 +331,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 try {
                     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
 
-                    await page.waitForTimeout(3000); // Задержка краулинга
+                    //await page.waitForTimeout(3000); // Задержка краулинга
 
                     if (await shouldChangeIP(page)) {
                         log(`Retrying after changing IP.`);
