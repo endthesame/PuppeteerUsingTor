@@ -98,22 +98,51 @@ module.exports = function extractMetadata() {
     if (date.length == 4) {
         date = `${date}-01-01`;
     }
-    let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content') // ДУБЛИРУЕТСЯ МЕТА - ФИКС НУЖНО СДЕЛАТЬ
+    let rawAuthors = Array.from(document.querySelectorAll('meta[name="citation_author"]')).map(author => author.content.trim())
+    let authors = [... new Set(rawAuthors)].join('; ')
     if (authors == ""){
-        let rawAuthors = Array.from(document.querySelectorAll('a[data-analytics="item-detail-author-card-author-btn"]')).map(author => author.innerText.trim())
+        rawAuthors = Array.from(document.querySelectorAll('a[data-analytics="item-detail-author-card-author-btn"]')).map(author => author.innerText.trim())
         authors = [... new Set(rawAuthors)].join('; ')
     }
-    let doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content')
+    let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content')
+    if (mf_doi == ""){
+        let doiArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("DOI")).map(elem => elem.querySelector('a').href.match(/doi.org\/(10.*)/)? elem.querySelector('a').href.match(/doi.org\/(10.*)/)[1] : "")
+        if (doiArr.length > 0){
+            mf_doi = doiArr[0];
+        }
+    }
     let lang = getMetaAttribute(['meta[name="citation_language"]'], 'content')
     if (lang === 'English'){
         lang = 'eng';
     }
     let publisher = getMetaAttribute(['meta[name="citation_publisher"]'], 'content')
+    if (publisher == ""){
+        let publisherArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("Publisher")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText: "")
+        if (publisherArr.length > 0){
+            publisher = publisherArr[0];
+        }
+    }
     let mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText.trim() : "";
+    if (mf_journal == ""){
+        mf_journal = ""
+    }
+
+    let volume = "";
+    let volumeArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("volume")).map(elem => elem.innerText.toLowerCase().match(/volume (\d+)/)? elem.innerText.toLowerCase().match(/volume (\d+)/)[1] : "");
+    if (volumeArr.length > 0){
+        volume = volumeArr[0];
+    }
+
+    let issue = "";
+    let issueArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("issue")).map(elem => elem.innerText.toLowerCase().match(/issue (\d+)/)? elem.innerText.toLowerCase().match(/issue (\d+)/)[1] : "");
+    if (issueArr.length > 0){
+        issue = issueArr[0];
+    }
+
     let print_issn = "";
     let e_issn = "";
-    let rawArr = Array.from(document.querySelectorAll('meta[name="citation_issn"]')).map(elem => elem.content)
-    let issns = [... new Set(rawArr)]
+    let rawIssnsArr = Array.from(document.querySelectorAll('meta[name="citation_issn"]')).map(elem => elem.content)
+    let issns = [... new Set(rawIssnsArr)]
     if (issns.length == 2){
         print_issn = issns[0]
         e_issn = issns[1]
@@ -139,8 +168,15 @@ module.exports = function extractMetadata() {
     }).join(";; ")
     let rawTopics = Array.from(document.querySelectorAll('[arialabel="Topics"] .ng-star-inserted')).map(elem => elem.innerText)
     let topics = [... new Set(rawTopics)].join(';') 
+    let pages = "";
+    if (pages == ""){
+        let pagesArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("pages")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim() : "")
+        if (pagesArr.length > 0){
+            pages = pagesArr[0];
+        }
+    }
 
-    var metadata = { '202': title, '200': authors, '233':doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics};
+    var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages};
     if (!metadata["202"])
     {
         metadata = false
