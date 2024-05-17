@@ -122,21 +122,27 @@ module.exports = function extractMetadata() {
             publisher = publisherArr[0];
         }
     }
-    let mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText.trim() : "";
+    let mf_journal = getMetaAttribute(['meta[name="citation_journal_title"]'], 'content')
     if (mf_journal == ""){
-        mf_journal = ""
+        mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText.trim() : "";
     }
 
-    let volume = "";
+    let volume = getMetaAttribute(['meta[name="citation_volume"]'], 'content')
     let volumeArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("volume")).map(elem => elem.innerText.toLowerCase().match(/volume (\d+)/)? elem.innerText.toLowerCase().match(/volume (\d+)/)[1] : "");
     if (volumeArr.length > 0){
         volume = volumeArr[0];
     }
+    if (volume == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")){
+        volume = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")[0] || "";
+    }
 
-    let issue = "";
+    let issue = getMetaAttribute(['meta[name="citation_issue"]'], 'content')
     let issueArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("issue")).map(elem => elem.innerText.toLowerCase().match(/issue (\d+)/)? elem.innerText.toLowerCase().match(/issue (\d+)/)[1] : "");
     if (issueArr.length > 0){
         issue = issueArr[0];
+    }
+    if (issue == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")){
+        issue = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")[0] || "";
     }
 
     let print_issn = "";
@@ -175,8 +181,14 @@ module.exports = function extractMetadata() {
             pages = pagesArr[0];
         }
     }
+    let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content')
+    let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content')
+    if (Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")){
+        first_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")[0] || "";
+        last_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[2] : "" : "")[0] || "";
+    }
 
-    var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages};
+    var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages, '197': first_page, '198': last_page};
     if (!metadata["202"])
     {
         metadata = false
