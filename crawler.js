@@ -210,6 +210,8 @@ async function extractMetafields(page) {
                 pages = pagesArr[0];
             }
         }
+
+        const mf_type = "book"
         
         // let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content')
         // let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content')
@@ -229,7 +231,7 @@ async function extractMetafields(page) {
         }
 
     
-        var metadata = { '242': mf_book, '200': authors, '233':mf_doi, '235': publisher, '203': date, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '193': pages, '240': mf_isbn, '241': mf_eisbn, 'sae_code': sae_code};
+        var metadata = { '242': mf_book, '200': authors, '233':mf_doi, '235': publisher, '203': date, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '193': pages, '240': mf_isbn, '241': mf_eisbn, 'sae_code': sae_code, '239': mf_type};
         if (!mf_book)
         {
             metadata = false
