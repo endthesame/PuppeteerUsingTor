@@ -98,9 +98,9 @@ async function extractMetafields(page) {
             return result.toString();
         }
     
-        let title = document.querySelector('.si-title ')? document.querySelector('.si-title ').innerText.trim() : "";
-        if (title === "") {
-            title = getMetaAttribute(['meta[name="citation_title"]'], 'content');
+        let mf_book = document.querySelector('.si-title ')? document.querySelector('.si-title ').innerText.trim() : "";
+        if (mf_book === "") {
+            mf_book = getMetaAttribute(['meta[name="citation_title"]'], 'content');
         }
         let date = getMetaAttribute(['meta[name="citation_date"]'], 'content').match(/\d{4}/)?.[0] || '';
         if (date === "") {
@@ -115,9 +115,11 @@ async function extractMetafields(page) {
             rawAuthors = Array.from(document.querySelectorAll('a[data-analytics="item-detail-author-card-author-btn"]')).map(author => author.innerText.trim())
             authors = [... new Set(rawAuthors)].join('; ')
         }
-        let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content')
+
+        const doiRegex = /^10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+$/;
+        let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content').match(doiRegex)? getMetaAttribute(['meta[name="citation_doi"]'], 'content').match(doiRegex)[0] : ""
         if (mf_doi == ""){
-            let doiArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("DOI")).map(elem => elem.querySelector('a').href.match(/doi.org\/(10.*)/)? elem.querySelector('a').href.match(/doi.org\/(10.*)/)[1] : "")
+            let doiArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("DOI")).map(elem => elem.querySelector('a').href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)? elem.querySelector('a').href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)[1] : "")
             if (doiArr.length > 0){
                 mf_doi = doiArr[0];
             }
@@ -133,29 +135,43 @@ async function extractMetafields(page) {
                 publisher = publisherArr[0];
             }
         }
-        let mf_journal = getMetaAttribute(['meta[name="citation_journal_title"]'], 'content')
-        if (mf_journal == ""){
-            mf_journal = document.querySelector('#mat-chip-list-1')? document.querySelector('#mat-chip-list-1').innerText.trim() : "";
-        }
     
         let volume = getMetaAttribute(['meta[name="citation_volume"]'], 'content')
-        let volumeArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("volume")).map(elem => elem.innerText.toLowerCase().match(/volume (\d+)/)? elem.innerText.toLowerCase().match(/volume (\d+)/)[1] : "");
-        if (volumeArr.length > 0){
-            volume = volumeArr[0];
-        }
-        if (volume == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")){
-            volume = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")[0] || "";
-        }
+        // let volumeArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("volume")).map(elem => elem.innerText.toLowerCase().match(/volume (\d+)/)? elem.innerText.toLowerCase().match(/volume (\d+)/)[1] : "");
+        // if (volumeArr.length > 0){
+        //     volume = volumeArr[0];
+        // }
+        // if (volume == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")){
+        //     volume = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[1] : "" : "")[0] || "";
+        // }
     
-        let issue = getMetaAttribute(['meta[name="citation_issue"]'], 'content')
-        let issueArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("issue")).map(elem => elem.innerText.toLowerCase().match(/issue (\d+)/)? elem.innerText.toLowerCase().match(/issue (\d+)/)[1] : "");
-        if (issueArr.length > 0){
-            issue = issueArr[0];
-        }
-        if (issue == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")){
-            issue = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")[0] || "";
-        }
+        //let issue = getMetaAttribute(['meta[name="citation_issue"]'], 'content')
+        // let issueArr = Array.from(document.querySelectorAll('.si-component')).filter(block => block.innerText.toLowerCase().includes("issue")).map(elem => elem.innerText.toLowerCase().match(/issue (\d+)/)? elem.innerText.toLowerCase().match(/issue (\d+)/)[1] : "");
+        // if (issueArr.length > 0){
+        //     issue = issueArr[0];
+        // }
+        // if (issue == "" && Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")){
+        //     issue = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/(\d+)\((\d+)\):\d+-\d+,/)[2] : "" : "")[0] || "";
+        // }
     
+        let mf_isbn = "";
+        let mf_eisbn = "";
+        let rawIsbnsArr = Array.from(document.querySelectorAll('meta[name="citation_isbn"]')).map(elem => elem.content)
+        let isbns = [... new Set(rawIsbnsArr)]
+        if (isbns.length == 2){
+            mf_isbn = isbns[0];
+            mf_eisbn = isbns[1];
+        }
+        if (isbns.length == 1){
+            mf_isbn = isbns[0];
+        }
+        if (mf_isbn == ""){
+            let isbnArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("ISBN")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText : "")
+            if (isbnArr.length > 0){
+                mf_isbn = isbnArr[0];
+            }
+        }
+
         let print_issn = "";
         let e_issn = "";
         let rawIssnsArr = Array.from(document.querySelectorAll('meta[name="citation_issn"]')).map(elem => elem.content)
@@ -167,7 +183,9 @@ async function extractMetafields(page) {
         if (issns.length == 1){
             print_issn = issns[0]
         }
-        let abstract = document.querySelector('#cdk-accordion-child-1 .si-data .si-data__set.si-wd-full .si-dataout__c')? document.querySelector('#cdk-accordion-child-1 .si-data .si-data__set.si-wd-full .si-dataout__c').innerText.trim() : "";
+        
+        let abstract = Array.from(document.querySelectorAll('.mat-expansion-panel')).filter(block => block.innerText.toLowerCase().includes("abstract")).map(elem => elem.querySelector('.si-data .si-data__set.si-wd-full .si-dataout__c')? elem.querySelector('.si-data .si-data__set.si-wd-full .si-dataout__c').innerText.trim() : "")?.[0] || "";
+        
         let author_aff = Array.from(document.querySelectorAll('.si-authors .mat-card-header-text')).filter(elem => {
             let author = elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-author-btn"]').innerText : "";
             let aff = elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]')? elem.querySelector('a[data-analytics="item-detail-author-card-affiliation-btn"]').innerText : "";
@@ -192,15 +210,27 @@ async function extractMetafields(page) {
                 pages = pagesArr[0];
             }
         }
-        let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content')
-        let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content')
-        if (Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")){
-            first_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")[0] || "";
-            last_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[2] : "" : "")[0] || "";
+        
+        // let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content')
+        // let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content')
+        // if (Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")){
+        //     first_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")[0] || "";
+        //     last_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[2] : "" : "")[0] || "";
+        // }
+
+        //ДЛЯ ОБЪЕДИНЕНИЯ С НАЦ ПОДПИСКОЙ - ЗАТЕМ УДАЛИТЬ
+        //let canonical_link = getMetaAttribute(['link[rel="canonical"]'], 'href').match(/https:\/\/www.sae.org\/publications\/books\/content\/.*/) ? getMetaAttribute(['link[rel="canonical"]'], 'href').match(/https:\/\/www.sae.org\/publications\/books\/content\/.*/)[0] : "";
+        let sae_code = "";
+        if (sae_code == ""){
+            let codeArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("code")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.trim() : "")
+            if (codeArr.length > 0){
+                sae_code = codeArr[0];
+            }
         }
+
     
-        var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages, '197': first_page, '198': last_page};
-        if (!title)
+        var metadata = { '242': mf_book, '200': authors, '233':mf_doi, '235': publisher, '203': date, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '193': pages, '240': mf_isbn, '241': mf_eisbn, 'sae_code': sae_code};
+        if (!mf_book)
         {
             metadata = false
         }
