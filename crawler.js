@@ -119,7 +119,7 @@ async function extractMetafields(page) {
         const doiRegex = /^10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+$/;
         let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content').match(doiRegex)? getMetaAttribute(['meta[name="citation_doi"]'], 'content').match(doiRegex)[0] : ""
         if (mf_doi == ""){
-            let doiArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("DOI")).map(elem => elem.querySelector('a').href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)? elem.querySelector('a').href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)[1] : "")
+            let doiArr = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.includes("DOI")).map(elem => elem.querySelector('a')?.href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)? elem.querySelector('a')?.href.match(/doi.org\/(10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+)/)[1] : "")
             if (doiArr.length > 0){
                 mf_doi = doiArr[0];
             }
