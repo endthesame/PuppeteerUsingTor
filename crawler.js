@@ -333,6 +333,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 try {
                     await page.goto(url, { waitUntil: 'networkidle0', timeout: 50000 });
                     await page.waitForSelector('.mat-button-wrapper', { waitUntil: 'networkidle0', timeout: 50000 })
+                    await new Promise(resolve => setTimeout(resolve, 3000));
 
                     //await page.waitForTimeout(1000); // Задержка краулинга
 
