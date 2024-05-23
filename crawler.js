@@ -13,6 +13,15 @@ puppeteer.use(StealhPlugin());
 async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
+        let getMetaAttribute = (selector, attribute, childSelector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                return targetElement.getAttribute(attribute) || "";
+            }
+            return "";
+        };
+
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
             for (const selector of selectors) {
@@ -56,7 +65,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
             // Формируем строку в нужном формате "author1:orcid;;author2:orcid..."
             let result = "";
             for (let author in authors) {
-                result += author + ":" + authors[author] + ";;";
+                result += author + "::" + authors[author] + ";;";
             }
             return result;
         }
@@ -78,7 +87,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
                 nextSibling = nextSibling.nextElementSibling;
                 }
                 if (authorInstitutions.length != 0) {
-                    result.push(`${authorName} : ${authorInstitutions.join('!')}`);
+                    result.push(`${authorName}:${authorInstitutions.join('!')}`);
                 }
             }
           
@@ -136,37 +145,53 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
 
         const affiliation = extractAuthorsAndInstitutions();
 
-        let title = getMetaAttributes(['meta[name="citation_title"]'], 'content');
+        let title = getMetaAttribute(['meta[name="citation_title"]'], 'content');
         if (title == ""){
-            title = document.querySelector('.wd-jnl-art-title')? document.querySelector('.wd-jnl-art-title').innerText : "";
+            title = document.querySelector('.wd-jnl-art-title')? document.querySelector('.wd-jnl-art-title').innerText.trim() : "";
         }
-        let date = getMetaAttributes(['meta[name="dc.date"]'], 'content')
+        let date = getMetaAttribute(['meta[name="dc.date"]'], 'content')
         if (date.length > 7){
-            date = date.replaceAll("/","-")
+            date = date.replaceAll("/","-");
+        }
+        if (date == "" || !date.match(/\d{4}-\d{2}-\d{2}/)){
+            date = document.querySelector('.wd-jnl-art-pub-date')? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)[0] : "" : "";
         }
         if (date == ""){
-            let raw_year = document.querySelector('.wd-jnl-art-pub-date')? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)[0] : "" : "";
-            if (raw_year.length == 4){
-                date = `${raw_year}-01-01`;
-            }
+            date = document.querySelector('meta[name="citation_online_date"]')? document.querySelector('meta[name="citation_online_date"]').content.match(/\d{4}/)? document.querySelector('meta[name="citation_online_date"]').content.match(/\d{4}/)[0] : "" : "";
         }
-        let authors = getMetaAttributes(['meta[name="citation_author"]'], 'content');
+        if (date.length == 4){
+            date = `${date}-01-01`;
+        }
+        let rawAuthors = Array.from(document.querySelectorAll('meta[name="citation_author"]')).map(author => author.content.trim())
+        let authors = Array.from([...new Set(rawAuthors)]).join('; ')
         if (authors == ""){
-            var rawAuthors = Array.from(document.querySelectorAll('span[itemprop="author"] span[itemprop="name"]')).map(elem => elem.innerText)
+            rawAuthors = Array.from(document.querySelectorAll('span[itemprop="author"] span[itemprop="name"]')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
-        const mf_doi = getMetaAttributes(['meta[name="citation_doi"]'], 'content');
-        const mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
-        let mf_issn = getMetaAttributes(['meta[name="citation_issn"]'], 'content');
+        let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content');
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('[itemprop="isPartOf"]')? document.querySelector('[itemprop="isPartOf"]').innerText.match(/DOI (10.*)/)? document.querySelector('[itemprop="isPartOf"]').innerText.match(/DOI (10.*)/)[1] : "" : "";
+        }
+        let mf_journal = getMetaAttribute(['meta[name="citation_journal_title"]'], 'content');
+        if (mf_journal == ""){
+            mf_journal = document.querySelector('.wd-jnl-art-breadcrumb-title')? document.querySelector('.wd-jnl-art-breadcrumb-title').innerText.trim() : "";
+        }
+        let mf_issn = getMetaAttribute(['meta[name="citation_issn"]'], 'content');
         let mf_eissn = '';
-        const publisher = getMetaAttributes(['meta[name="citation_publisher"]'], 'content');
-        const volume = getMetaAttributes(['meta[name="citation_volume"]'], 'content');
-        const issue = getMetaAttributes(['meta[name="citation_issue"]'], 'content');
-        let first_page = getMetaAttributes(['meta[name="citation_firstpage"]'], 'content');
+        const publisher = getMetaAttribute(['meta[name="citation_publisher"]'], 'content');
+        let volume = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_volume"]'], 'content'));
+        if (volume == ""){
+            volume = document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]')? document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]').innerText.match(/Volume (\d+)/)? document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]').innerText.match(/Volume (\d+)/)[1] : "" : "";
+        }
+        let issue = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_issue"]'], 'content'));
+        if (issue == ""){
+            issue = document.querySelector('.wd-jnl-art-breadcrumb-issue')? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)[1] : "" : "";
+        }
+        let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content');
         first_page = romanToNumberOrReturn(first_page);
-        let last_page = getMetaAttributes(['meta[name="citation_lastpage"]'], 'content');
+        let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content');
         last_page = romanToNumberOrReturn(last_page);
-        var language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
+        let language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
         if (language === 'en'){
             language = 'eng';
         }
@@ -175,7 +200,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
         const keywords = document.querySelector('[class*="keyword"][class*="wd-jnl"] p')? document.querySelector('[class*="keyword"][class*="wd-jnl"] p').innerText : "";
-        let mf_type = document.querySelector('.wd-jnl-art-sur-title')? document.querySelector('.wd-jnl-art-sur-title').innerText : "";
+        const mf_type = 'article'
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -184,10 +209,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, siteFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.wd-jnl-art-abstract')? document.querySelector('.wd-jnl-art-abstract').innerText.replaceAll('\n', ' ')  : "";
+        const abstract = document.querySelector('.wd-jnl-art-abstract')? document.querySelector('.wd-jnl-art-abstract').innerText.trim().replaceAll('\n', ' ')  : "";
         
         //Type
-        let orcid = getOrcids();
+        let authorOrcArr = Array.from(document.querySelectorAll('[itemprop="author"]')).map(author_block => {
+            let author_name = author_block.querySelector('[itemprop="name"]')? author_block.querySelector('[itemprop="name"]').innerText.trim() : "";
+            let orcid = "";
+            let orcidArr = Array.from(author_block.querySelectorAll('a')).filter(elem => elem.href.includes("orcid.org")).map(orc => orc.href)
+            if (orcidArr.length > 0){
+                orcid = orcidArr[0]
+            }
+            if (author_name != "" && orcid != ""){
+                return `${author_name}::${orcid}`;
+            }
+        }).filter(item => item !== undefined)
+          
+        let orcid = getOrcids() || [... new Set(authorOrcArr)].join(';;');
     
         var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page, '144': affiliation, '239': mf_type, '234': orcid};
         if (!title)
