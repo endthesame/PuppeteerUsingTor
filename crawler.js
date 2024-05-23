@@ -12,6 +12,15 @@ puppeteer.use(StealhPlugin());
 
 async function extractMetafields(page) {
     const meta_data = await page.evaluate(() => {
+        let getMetaAttribute = (selector, attribute, childSelector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                return targetElement.getAttribute(attribute) || "";
+            }
+            return "";
+        };
+
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
             for (const selector of selectors) {
@@ -30,6 +39,60 @@ async function extractMetafields(page) {
             return values.join('; ');
         };
 
+        function getOrcids() {
+            // Получаем все мета-теги
+            var metaTags = document.getElementsByTagName('meta');
+
+            // Создаем объекты для хранения информации об авторах и их ORCID
+            let authors = {};
+            var currentAuthor = "";
+
+            // Проходим по всем мета-тегам
+            for (let i = 0; i < metaTags.length; i++) {
+                let metaTag = metaTags[i];
+                // Если мета-тег содержит информацию об авторе
+                if (metaTag.getAttribute('name') === 'citation_author') {
+                    currentAuthor = metaTag.getAttribute('content');
+                }
+                // Если мета-тег содержит информацию об ORCID автора
+                else if (metaTag.getAttribute('name') === 'citation_author_orcid') {
+                    let authorOrcid = metaTag.getAttribute('content');
+                    // Добавляем автора и его ORCID в объект
+                    authors[currentAuthor] = authorOrcid;
+                }
+            }
+            // Формируем строку в нужном формате "author1:orcid;;author2:orcid..."
+            let result = "";
+            for (let author in authors) {
+                result += author + "::" + authors[author] + ";;";
+            }
+            return result;
+        }
+    
+        function extractAuthorsAndInstitutions() {
+            const authors = Array.from(document.querySelectorAll('meta[name="citation_author"]'));
+            const institutions = Array.from(document.querySelectorAll('meta[name="citation_author_institution"]'));
+          
+            const result = [];
+          
+            for (const author of authors) {
+                const authorName = author.getAttribute('content');
+                const authorInstitutions = [];
+            
+                // сопоставление авторов и аффиляции
+                let nextSibling = author.nextElementSibling;
+                while (nextSibling && nextSibling.tagName === 'META' && nextSibling.getAttribute('name') === 'citation_author_institution') {
+                authorInstitutions.push(nextSibling.getAttribute('content'));
+                nextSibling = nextSibling.nextElementSibling;
+                }
+                if (authorInstitutions.length != 0) {
+                    result.push(`${authorName}:${authorInstitutions.join('!')}`);
+                }
+            }
+          
+            return result.join(";; ");
+        }
+        
         function romanToNumberOrReturn(input) {
             const romanNumerals = {
                 'I': 1,
@@ -78,123 +141,65 @@ async function extractMetafields(page) {
             // Преобразование числа в строку и возвращение результата
             return result.toString();
         }
-    
-        // let title = getMetaAttributes(['meta[name="citation_title"]'], 'content')
-        // if (title == ""){
-        //     title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.trim() : "";
-        // }
-        let date = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/Published.*(\d{4})/) ? document.querySelector('.published-info').innerText.trim().match(/Published.*(\d{4})/)[1] : "" : "";
+
+        const affiliation = extractAuthorsAndInstitutions();
+
+        let title = getMetaAttribute(['meta[name="citation_title"]'], 'content');
+        if (title == ""){
+            title = document.querySelector('.wd-jnl-art-title')? document.querySelector('.wd-jnl-art-title').innerText.trim() : "";
+        }
+        let date = getMetaAttribute(['meta[name="dc.date"]'], 'content')
+        if (date.length > 7){
+            date = date.replaceAll("/","-");
+        }
+        if (date == "" || !date.match(/\d{4}-\d{2}-\d{2}/)){
+            date = document.querySelector('.wd-jnl-art-pub-date')? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)? document.querySelector('.wd-jnl-art-pub-date').innerText.match(/\d{4}/)[0] : "" : "";
+        }
         if (date == ""){
-            date = document.querySelector('.left-bordered-title .date')? document.querySelector('.left-bordered-title .date').innerText.trim().match(/(\d{4})/) ? document.querySelector('.left-bordered-title .date').innerText.trim().match(/(\d{4})/)[1] : "" : "";
+            date = document.querySelector('meta[name="citation_online_date"]')? document.querySelector('meta[name="citation_online_date"]').content.match(/\d{4}/)? document.querySelector('meta[name="citation_online_date"]').content.match(/\d{4}/)[0] : "" : "";
         }
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-
-        let authors = Array.from(document.querySelectorAll('.item-meta__info .loa ')).filter(elem => elem.innerText.includes("Author")).map(elem => Array.from(elem.querySelectorAll('li a')).map(author => author.innerText.trim()).join("; ")).join("; ")
-        let editors = Array.from(document.querySelectorAll('.item-meta__info .loa ')).filter(elem => elem.innerText.includes("Editor")).map(elem => Array.from(elem.querySelectorAll('li a')).map(editor => editor.innerText.trim()).join("; ")).join("; ")
-
-        let mf_doi = document.querySelector('meta[name="publication_doi"]')? document.querySelector('meta[name="publication_doi"]').content.trim() : "";
+        let rawAuthors = Array.from(document.querySelectorAll('meta[name="citation_author"]')).map(author => author.content.trim())
+        let authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        if (authors == ""){
+            rawAuthors = Array.from(document.querySelectorAll('span[itemprop="author"] span[itemprop="name"]')).map(elem => elem.innerText)
+            authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        }
+        let mf_doi = getMetaAttribute(['meta[name="citation_doi"]'], 'content');
         if (mf_doi == ""){
-            mf_doi = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/) ? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/)[1].replace("https://doi.org/", "") : "" : "";
+            mf_doi = document.querySelector('[itemprop="isPartOf"]')? document.querySelector('[itemprop="isPartOf"]').innerText.match(/DOI (10.*)/)? document.querySelector('[itemprop="isPartOf"]').innerText.match(/DOI (10.*)/)[1] : "" : "";
         }
-
-        let mf_book = document.querySelector('.left-bordered-title span')? document.querySelector('.left-bordered-title span').innerText.trim() : "";
-
-        // let subtitle = "";
-        // let headbook = document.querySelector('meta[name="citation_journal_title"]')? document.querySelector('meta[name="citation_journal_title"]').content.trim() : "";
-        // let fullbookname = document.querySelector('.uk-article-title')? document.querySelector('.uk-article-title').innerText.trim() : "";
-        // if (fullbookname == ""){
-        //     fullbookname = document.querySelector('meta[name="citation_title"]')? document.querySelector('meta[name="citation_title"]').content.trim() : "";
-        // }
-        // if (fullbookname.startsWith(headbook)){
-        //     mf_book = headbook.trim();
-        //     subtitle = fullbookname.replace(headbook, "").replace(":", "").trim();
-        // } else {
-        //     mf_book = fullbookname;
-        // }
-
-        //let book_series = document.querySelector('.series')? document.querySelector('.series').innerText.replace("SERIES","").trim() : "";
-
-        let mf_isbn = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/ISBN:([0-9-]+)/) ? document.querySelector('.published-info').innerText.trim().match(/ISBN:([0-9-]+)/)[1] : "" : "";
-        if (mf_isbn == ""){
-            let rawISBN = Array.from(document.querySelectorAll('.item-meta-row')).filter(elem => elem.innerText.includes("ISBN")).map(elem => elem.innerText)
-            if (rawISBN.length > 0){
-                mf_isbn = rawISBN[0].match(/[0-9-]+/)? rawISBN[0].match(/[0-9-]+/)[0] : "";
-            }
+        let mf_journal = getMetaAttribute(['meta[name="citation_journal_title"]'], 'content');
+        if (mf_journal == ""){
+            mf_journal = document.querySelector('.wd-jnl-art-breadcrumb-title')? document.querySelector('.wd-jnl-art-breadcrumb-title').innerText.trim() : "";
         }
-        // if (mf_isbn == ""){
-        //     printIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Paperback ISBN:"));
-        //     if (printIsbn.length > 0){
-        //         mf_isbn = printIsbn[0].replace("Paperback ISBN: ", "");
-        //     }
-        // }
-        
-        // let mf_eisbn = "";
-        // let eIsbn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("ISBN electronic:"));
-        // if (eIsbn.length > 0){
-        //     mf_eisbn = eIsbn[0].replace("ISBN electronic: ", "");
-        // }
-
-        // let mf_issn = "";
-        // let printIssn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Print ISSN:"))
-        // if (printIssn.length > 0){
-        //     mf_issn = printIssn[0].replace("Print ISSN: ", "")
-        // }
-        
-        let publisher = Array.from(document.querySelectorAll('.item-meta-row')).filter(elem => elem.innerText.includes("Publisher")).map(elem => elem.querySelector('.rlist--inline li')? elem.querySelector('.rlist--inline li').innerText.trim() : "").join(";")
-        // if (publisher == ""){
-        //     publisher = document.querySelector('.uk-article-place a')? document.querySelector('.uk-article-place a').innerText.trim() : "";
-        // }
-        //let volume = document.querySelector('.meta__vol')? document.querySelector('.meta__vol').innerText.match(/\d+/)? document.querySelector('.meta__vol').innerText.match(/\d+/)[0] : "" : "";
-        // if (volume == "" && document.querySelector('.book-info__title').innerText.toLowerCase().includes("volume")){
-        //     volume = 
-        // }
-        // let first_page = document.querySelector('#getCitation')? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)[1] : "" : "";
-        // if (first_page == ""){
-        //     first_page = document.querySelector('.chapter-pagerange-value')? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)[1] : "" : "";
-        // }
-        // let last_page = document.querySelector('#getCitation')? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)[2] : "" : "";
-        // if (last_page == ""){
-        //     last_page = document.querySelector('.chapter-pagerange-value')? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)? document.querySelector('.chapter-pagerange-value').innerText.trim().match(/(\d+) - (\d+)/)[2] : "" : "";
-        // }
-        let pages = Array.from(document.querySelectorAll('.item-meta-row')).filter(elem => elem.innerText.includes("Pages")).map(elem => elem.innerText.trim().replaceAll("\n","").match(/\d+/)? elem.innerText.trim().replaceAll("\n","").match(/\d+/)[0] : "" ).join(";")
-        // if (pages == ""){
-        //     pages = romanToNumberOrReturn(document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"numberOfPages":(\d+)/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"numberOfPages":(\d+)/)[1] : "" : "");
-        // }
-        const type = "book";
-        
-        // let editorsArray = Array.from(document.querySelectorAll('.book-info__authors .editors .al-author-name .linked-name')).map(elem => elem.innerText.trim())
-        // let editors = Array.from([...new Set(editorsArray)]).join('; ')
-        // let raw_editors_aff = Array.from(document.querySelectorAll('.book-info__authors .editors .al-author-name .info-card-author'))
-        // .filter(elem => {
-        //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
-        //     let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim() : "";
-        //     return author != "" && affilation.length != "";
-        // })
-        // .map(elem => {
-        //     let author = elem.querySelector('.info-card-name').innerText.trim();
-        //     // let affilation = Array.from(elem.querySelectorAll('.aff > div, .aff > a'))
-        //     //     .map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ");
-        //     // if (affilation == ""){
-        //     //     affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
-        //     // }
-        //     //let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
-        //     let affilation = Array.from(elem.querySelectorAll('.aff')).map(affil => affil.innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join("!");
-        //     return `${author}:${affilation}`;
-        // })
-        // let editors_aff = Array.from([...new Set(raw_editors_aff)]).join(";; ");
-
-        // let lang = document.querySelector('script[type="application/ld+json"]')? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)? document.querySelector('script[type="application/ld+json"]').innerText.match(/"inLanguage":"([a-zA-Z]+)"/)[1] : "" : "";
-        // if (lang == "en"){
-        //     lang = "eng";
-        // }
+        let mf_issn = getMetaAttribute(['meta[name="citation_issn"]'], 'content');
+        let mf_eissn = '';
+        const publisher = getMetaAttribute(['meta[name="citation_publisher"]'], 'content');
+        let volume = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_volume"]'], 'content'));
+        if (volume == ""){
+            volume = document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]')? document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]').innerText.match(/Volume (\d+)/)? document.querySelector('.wd-jnl-art-breadcrumb-vol [itemprop="volumeNumber"]').innerText.match(/Volume (\d+)/)[1] : "" : "";
+        }
+        let issue = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_issue"]'], 'content'));
+        if (issue == ""){
+            issue = document.querySelector('.wd-jnl-art-breadcrumb-issue')? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)[1] : "" : "";
+        }
+        let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content');
+        first_page = romanToNumberOrReturn(first_page);
+        let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content');
+        last_page = romanToNumberOrReturn(last_page);
+        let language = getMetaAttributes(['meta[name="citation_language"]'], 'content');
+        if (language === 'en'){
+            language = 'eng';
+        }
+        else if (language === 'ru'){
+            language = 'rus';
+        }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        //let rawKeywords =Array.from(document.querySelectorAll('#keywords_list .intent_text')).map(elem => elem.innerText.replaceAll(",", "").trim())
-        //let keywords = "";
-        // if (keywords == ""){
-        //     keywords = getMetaAttributes(['meta[name="keywords"]'], 'content')
-        // }   
+        const keywords = document.querySelector('[class*="keyword"][class*="wd-jnl"] p')? document.querySelector('[class*="keyword"][class*="wd-jnl"] p').innerText : "";
+        const mf_type = 'article'
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -203,43 +208,25 @@ async function extractMetafields(page) {
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ").replaceAll("No abstract available.", "") : "";
-        // let raw_affiliation = Array.from(document.querySelectorAll('.book-info__authors .authors .al-author-name .info-card-author'))
-        // .filter(elem => {
-        //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
-        //     let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim() : "";
-        //     return author != "" && affilation.length != "";
-        // })
-        // .map(elem => {
-        //     let author = elem.querySelector('.info-card-name').innerText.trim();
-        //     // let affilation = Array.from(elem.querySelectorAll('.aff > div, .aff > a'))
-        //     //     .map(block => block.textContent.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join(" ");
-        //     // if (affilation == ""){
-        //     //     affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
-        //     // }
-        //     //let affilation = elem.querySelector('.aff')? elem.querySelector('.aff').innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '') : "";
-        //     let affilation = Array.from(elem.querySelectorAll('.aff')).map(affil => affil.innerText.trim().replace(elem.querySelector('.label')?elem.querySelector('.label').innerText : "", '')).join("!");
-        //     return `${author}:${affilation}`;
-        // })
-        // let affiliation = Array.from([...new Set(raw_affiliation)]).join(";; ");
-
-    
-        // let orcids = Array.from(document.querySelectorAll('.loa .hlFld-Affiliation')).map(elem => {
-        //     let authorNameElement = elem.querySelector('.loa-info-name');
-        //     let orcidElements = elem.querySelectorAll('.loa-info-orcid');
-          
-        //     if(authorNameElement && orcidElements.length > 0) {
-        //       let authorName = authorNameElement.innerText;
-        //       let orcids = Array.from(orcidElements).map(aff => aff.innerText).join('!');
-        //       return `${authorName}::${orcids}`;
-        //     }
-        //   }).filter(item => item !== undefined).join(";;");
-
+        const abstract = document.querySelector('.wd-jnl-art-abstract')? document.querySelector('.wd-jnl-art-abstract').innerText.trim().replaceAll('\n', ' ')  : "";
+        
         //Type
-        // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+        let authorOrcArr = Array.from(document.querySelectorAll('[itemprop="author"]')).map(author_block => {
+            let author_name = author_block.querySelector('[itemprop="name"]')? author_block.querySelector('[itemprop="name"]').innerText.trim() : "";
+            let orcid = "";
+            let orcidArr = Array.from(author_block.querySelectorAll('a')).filter(elem => elem.href.includes("orcid.org")).map(orc => orc.href)
+            if (orcidArr.length > 0){
+                orcid = orcidArr[0]
+            }
+            if (author_name != "" && orcid != ""){
+                return `${author_name}::${orcid}`;
+            }
+        }).filter(item => item !== undefined)
+          
+        let orcid = getOrcids() || [... new Set(authorOrcArr)].join(';;');
     
-        var metadata = { '200': authors, '203': date, '81': abstract, '233': mf_doi, '240': mf_isbn, '239': type, '235': publisher, '242': mf_book, '193': pages, '207': editors};
-        if (!mf_book)
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '197': first_page, '198': last_page, '144': affiliation, '239': mf_type, '234': orcid};
+        if (!title)
         {
             metadata = false
         }
@@ -293,11 +280,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".toolbar-inner-wrap .pdf")?document.querySelector(".toolbar-inner-wrap .pdf").href : "";
+                var pdfLinks = document.querySelector(".wd-jnl-art-pdf-button-main")?document.querySelector(".wd-jnl-art-pdf-button-main").href : "";
                 if (!pdfLinks){
                     return null;
                 }
-                return pdfLinks.replace("reader", "pdf").replace("epdf", "pdf");
+                return pdfLinks.replace("reader", "pdf");
 
                 // const pdfLinks = Array.from(document.querySelectorAll("a[href]"))
                 // .filter(a => a.href.match(/\/doi\/reader.*/))
@@ -325,15 +312,16 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                args: ['--proxy-server=127.0.0.1:8118'],
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
-            await page.setViewport({ width: 1920, height: 1080 });
+            await page.setViewport({ width: 1280, height: 720 });
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
+            await page.goto('https://iopscience.iop.org/', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
             while (remainingLinks.length > 0) {
                 const url = remainingLinks[0].trim();
