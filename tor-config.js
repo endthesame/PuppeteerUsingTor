@@ -26,7 +26,7 @@ async function shouldChangeIP(page) {
     const currentURL = page.url();
 
     const isTitleAvailable = await page.evaluate(() => {
-        if (document.querySelector('.wd-jnl-art-title')){
+        if (document.querySelector('.publication-title')){
             return true;
         } else {
             return false;
