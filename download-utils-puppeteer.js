@@ -45,7 +45,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         const tempDownloadPath = pdfSavePath.slice(0, -4);
         try{
             await downloadPDF(page, pdfLink, tempDownloadPath);
-            await new Promise(resolve => setTimeout(resolve, 5000)); //timeout (waiting for the download to complete)
+            await new Promise(resolve => setTimeout(resolve, 15000)); //timeout (waiting for the download to complete)
             log(`Processing link: ${pdfLink}; and path: ${pdfSavePath}`);
             await page.close();
             const files = fs.readdirSync(tempDownloadPath);
@@ -83,19 +83,28 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
         behavior: 'allow',
         downloadPath: tempDownloadPath
     });
-    await page.goto('about:blank'); // Переход на пустую страницу
+    // await page.goto('about:blank'); // Переход на пустую страницу
+    await page.goto(pdfLink, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    await page.evaluate((pdfLink) => {
-        // Создание кнопки
-        const downloadButton = document.createElement('a');
-        downloadButton.href = pdfLink;
-        downloadButton.download = 'downloaded_file.pdf';
-        downloadButton.style.display = 'none'; // Скрыть кнопку
-        document.body.appendChild(downloadButton);
+    // await page.evaluate((pdfLink) => {
+    //     // Создание кнопки
+    //     const downloadButton = document.createElement('a');
+    //     downloadButton.href = pdfLink;
+    //     downloadButton.download = 'downloaded_file.pdf';
+    //     downloadButton.style.display = 'none'; // Скрыть кнопку
+    //     document.body.appendChild(downloadButton);
 
-        downloadButton.click();
-        downloadButton.remove();
-    }, pdfLink);
+    //     downloadButton.click();
+    //     downloadButton.remove();
+    // }, pdfLink);
+    await page.waitForTimeout(2000);
+    const elementHandle = await page.waitForSelector('body > iframe:nth-child(17)');
+    const frame = await elementHandle.contentFrame();
+    await frame.waitForSelector('#open-button');
+    const button = await frame.$('#open-button');
+    button.click();
+    // const button = await page.$('a');
+    // console.log(button)
 
     // Ожидание завершения скачивания
     await page.waitForTimeout(6000);
