@@ -98,7 +98,7 @@ async function downloadPDF(page, pdfLink, tempDownloadPath) {
     }, pdfLink);
 
     // Ожидание завершения скачивания
-    await page.waitForTimeout(6000);
+    //await page.waitForTimeout(6000);
 }
 
 module.exports = {downloadPDFs, downloadPDF };
