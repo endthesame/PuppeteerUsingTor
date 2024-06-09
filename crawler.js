@@ -267,16 +267,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
-    (async () => {
-        const htmlSource = await page.content();
-        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
-          if (err) {
-            console.error('Error saving HTML to file:', err);
-          } else {
-            console.log('HTML saved to file successfully');
-          }
-        });
-      })();
+    const htmlSource = await page.content();
+    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+      if (err) {
+        console.error('Error saving HTML to file:', err);
+      } else {
+        console.log('HTML saved to file successfully');
+      }
+    });
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
