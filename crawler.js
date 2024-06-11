@@ -121,6 +121,27 @@ async function extractMetafields(page) {
         const mf_book = getTextFromElementWithoutSpan(h1Element).trim().replaceAll('\n', '');
         const subtitle = document.querySelector(".book-info__title .subtitle")?document.querySelector(".book-info__title .subtitle").textContent.trim().replaceAll('\n', '') : "";
         const mf_eisbn = document.querySelector('.book-info__meta .book-info__isbn') ? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)? document.querySelector('.book-info__meta .book-info__isbn').innerText.replaceAll('\n', " ").match(/ISBN electronic: (.*)/)[1] : "" : "";
+        //print isbn
+        let mf_isbn = "";
+        function getMFDict(){
+            let scriptElement = document.querySelector('script[type="application/ld+json"]')?.innerText;
+            let dictionary = JSON.parse(scriptElement);
+            return dictionary
+        }
+
+        let scriptData = getMFDict();
+        let isbnsArr = scriptData["isPartOf"]["isbn"]? scriptData["isPartOf"]["isbn"] : [];
+        if (isbnsArr.length > 1){
+            if (isbnsArr[0] == mf_eisbn){
+                mf_isbn = isbnsArr[1]
+            }
+            else if (isbnsArr[1] == mf_eisbn){
+                mf_isbn = isbnsArr[0]
+            } else {
+                mf_isbn = "";
+            }
+        }
+
         const publisher = document.querySelector('.book-info__meta .book-info__publisher-name') ? document.querySelector('.book-info__meta .book-info__publisher-name').innerText.replaceAll('\n', " ") : "";
         let book_series = document.querySelector('.book-series')? document.querySelector('.book-series').innerText : "";
         let volume = romanToNumberOrReturn(document.querySelector('.book-info__title')?document.querySelector('.book-info__title').innerText.match(/Volume ([A-Z0-9]+)/)? document.querySelector('.book-info__title').innerText.match(/Volume ([A-Z0-9]+)/)[1] : "" : "");
@@ -148,7 +169,7 @@ async function extractMetafields(page) {
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
     
-        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '241':mf_eisbn, '239': type, '243': book_series, '176': volume, '205': language };
+        var metadata = { '202': title, '203': date, '200': authors, '233': mf_doi, '81': abstract, '235': publisher, '201': keywords, '207': editors, '242': mf_book, '212': subtitle, '240': mf_isbn,'241':mf_eisbn, '239': type, '243': book_series, '176': volume, '205': language };
         if (!title || !mf_book)
         {
             metadata = false
@@ -318,7 +339,7 @@ async function parsing(jsonFolderPath,  htmlFolderPath,) {
             page = await browser.newPage();
 
             const htmlFiles = fs.readdirSync(htmlFolderPath);
-            const fieldsToUpdate = ['241', '176', '205', '200'];
+            const fieldsToUpdate = ['240'];
             log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
             for (const htmlFile of htmlFiles) {
                 const htmlFilePath = path.join(htmlFolderPath, htmlFile);
