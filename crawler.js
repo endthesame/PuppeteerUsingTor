@@ -198,8 +198,10 @@ async function extractMetafields(page) {
             first_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[1] : "" : "")[0] || "";
             last_page = Array.from(document.querySelectorAll('.si-data__set')).filter(block => block.innerText.toLowerCase().includes("citation")).map(elem => elem.querySelector('.si-dataout__c')? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)? elem.querySelector('.si-dataout__c').innerText.toLowerCase().trim().match(/\(\d+\):(\d+)-(\d+),/)[2] : "" : "")[0] || "";
         }
+
+        const doc_type = 'article';
     
-        var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages, '197': first_page, '198': last_page};
+        var metadata = { '202': title, '200': authors, '233':mf_doi, '235': publisher, '203': date, '232': mf_journal, '184': print_issn, '185': e_issn, '205': lang, '81': abstract, '144': author_aff, '201': topics, '176':volume, '208': issue, '193': pages, '197': first_page, '198': last_page, '239': doc_type};
         if (!title)
         {
             metadata = false
