@@ -102,7 +102,7 @@ async function extractMetafields(page) {
         //     title = document.querySelector('.chapter-title')? document.querySelector('.chapter-title').innerText.trim() : "";
         // }
 
-        let date = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Copyright Year: (\d{4})/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Copyright Year: (\d{4})/)[1] : "" : "";
+        let date = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Date of Publication: (\d{4})/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Date of Publication: (\d{4})/)[1] : "" : "";
         if (date == ""){
             date = mf_dict["copyrightYear"] || mf_dict["publicationYear"] ||  ""
             //date = document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)')? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)[1] : "" : "";
@@ -205,12 +205,9 @@ async function extractMetafields(page) {
         //     mf_issn = printIssn[0].replace("Print ISSN:", "").trim();
         // }
         
-        let publisher = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Book Type: (.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Book Type: (.*)/)[1].trim() : "" : "";
+        let publisher = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Publisher: (.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Publisher: (.*)/)[1].trim() : "" : "";
         if (publisher == ""){
-            publisher = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Publisher: (.*)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Publisher: (.*)/)[1].trim() : "" : "";
-            if (publisher == ""){
-                publisher = mf_dict["publisher"] || mf_dict["bookType"] || "";
-            }
+            publisher = mf_dict["publisher"] || mf_dict["bookType"] || "";
         }
         // const volume = document.querySelector('.book-info__volume-number')? document.querySelector('.book-info__volume-number').innerText.trim(): "";
         // let first_page = document.querySelector('#getCitation')? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)? document.querySelector('#getCitation').innerText.trim().match(/pp. (\d+)-(\d+)/)[1] : "" : "";
@@ -269,7 +266,10 @@ async function extractMetafields(page) {
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = mf_dict["abstract"]?.replaceAll(/<[^>]+>/g, '') || ""
+        let abstract = mf_dict["abstract"]?.replaceAll(/<[^>]+>/g, '') || "";
+        if (abstract == ""){
+            abstract = document.querySelector(".abstract-text")? document.querySelector(".abstract-text").innerText.replace("Abstract:", "").trim() : "";
+        }
         // let raw_affiliation = Array.from(document.querySelectorAll('.wi-authors .info-card-author'))
         // .filter(elem => {
         //     let author = elem.querySelector('.info-card-name')? elem.querySelector('.info-card-name').innerText.trim() : "";
@@ -358,16 +358,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
-    (async () => {
-        const htmlSource = await page.content();
-        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
-          if (err) {
-            console.error('Error saving HTML to file:', err);
-          } else {
-            console.log('HTML saved to file successfully');
-          }
-        });
-      })();
+    const htmlSource = await page.content();
+    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+      if (err) {
+        console.error('Error saving HTML to file:', err);
+      } else {
+        console.log('HTML saved to file successfully');
+      }
+    });
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
