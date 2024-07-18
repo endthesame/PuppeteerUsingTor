@@ -118,7 +118,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let authors = "";
         let editors = "";
         let rawAuthorsDivBlock = document.querySelector('.item-meta__info .item-meta-row [title="list of authors"]')
-        if (rawAuthorsDivBlock.length > 0){
+        if (rawAuthorsDivBlock){
             let rawAuthorsArr = Array.from(rawAuthorsDivBlock.querySelectorAll('.item-meta__info .item-meta-row [title="list of authors"] li a span')).map(elem => elem.innerText.trim())
             if (rawAuthorsDivBlock.querySelector('.label')?.innerText?.includes("Editor")){
                 editors = Array.from([...new Set(rawAuthorsArr)]).join('; ')
