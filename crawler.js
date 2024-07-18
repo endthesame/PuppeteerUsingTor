@@ -327,7 +327,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                 try {
                     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-                    //await new Promise(resolve => setTimeout(resolve, 15000));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     //await page.waitForTimeout(3000); // Задержка краулинга
 
                     // if (await shouldChangeIP(page)) {
