@@ -100,6 +100,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             let rawTitle =  document.querySelector('meta[name="dc.Title"]') ? document.querySelector('meta[name="dc.Title"]').content : "";
             let titleSubtitle = document.querySelector('meta[name="dc.Title.Subtitle"]') ? document.querySelector('meta[name="dc.Title.Subtitle"]').content : "";
             title = `${rawTitle} : ${titleSubtitle}`;
+            if (rawTitle == "" && titleSubtitle == ""){
+                title = "";
+            }
         }
         let date = getMetaAttribute(['meta[name="dc.Date"]'], 'content')?getMetaAttribute(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)? getMetaAttribute(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)[0] : "" : "";
         if (date == ""){
