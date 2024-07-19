@@ -231,6 +231,12 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
                 conference_dates = conferenceBlocksArr[1] || "";
             }
         }
+        else if (conferenceBlocksArr.length == 1){
+            let breadcrumbsArr = document.querySelectorAll('.article__breadcrumbs .article__tocHeading');
+            if (breadcrumbsArr.length > 0) {
+                conference_name = breadcrumbsArr[breadcrumbsArr.length - 1].innerText.trim();
+            }
+        }
     
         var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '81': abstract, '235': publisher, '239': type, '201': keywords, '207': editors, '184': mf_issn, '185': mf_eissn, '205': language, '255': conference_place, '254': conference_name, '149': conference_dates, '193': book_pages, '240': mf_isbn};
         if (!title)
