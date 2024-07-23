@@ -181,7 +181,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let conference_dates = document.querySelector('.core-conference .core-conference-calender')? document.querySelector('.core-conference .core-conference-calender').innerText.trim() : "";
         let conference_place = document.querySelector('.core-conference .core-conference-map')? document.querySelector('.core-conference .core-conference-map').innerText.trim() : "";
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '235': publisher, '239': type, '201': keywords, '207': editors, '184': mf_issn, '185': mf_eissn, '205': language};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '197': first_page, '198': last_page, '232': mf_journal, '176': volume, '208': issue, '81': abstract, '235': publisher, '239': type, '201': keywords, '207': editors, '184': mf_issn, '185': mf_eissn, '205': language, '242': mf_book, '240': isbn, '193': book_pages, '254': conference_name, '255': conference_place, '149': conference_dates};
         if (!title)
         {
             metadata = false
@@ -231,7 +231,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".pdf-file a")?document.querySelector(".pdf-file a").href : "";
+                let pdfLinks = document.querySelector(".pdf-file a")?document.querySelector(".pdf-file a").href : "";
+                if (pdfLinks == ""){
+                    pdfLinks = document.querySelector(".info-panel__item .btn--pdf")?document.querySelector(".info-panel__item .btn--pdf").href : "";
+                }
                 if (!pdfLinks){
                     return null;
                 }
@@ -259,8 +262,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
         let page;
 
         try {
-            await changeTorIp();
-            await getCurrentIP();
+            // await changeTorIp();
+            // await getCurrentIP();
 
             browser = await puppeteer.launch({
                 //args: ['--proxy-server=127.0.0.1:8118'],
@@ -281,11 +284,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                     //await page.waitForTimeout(3000); // Задержка краулинга
 
-                    if (await shouldChangeIP(page)) {
-                        log(`Retrying after changing IP.`);
-                        // Продолжаем внутренний цикл с новым браузером
-                        continue mainLoop;
-                    }
+                    // if (await shouldChangeIP(page)) {
+                    //     log(`Retrying after changing IP.`);
+                    //     // Продолжаем внутренний цикл с новым браузером
+                    //     continue mainLoop;
+                    // }
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
@@ -314,7 +317,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             }
         } catch (error) {
             log(`Error during crawling: ${error.message}`);
-            await changeTorIp(); // Меняем IP при ошибке
+            //await changeTorIp(); // Меняем IP при ошибке
         } finally {
             if (browser) {
                 await browser.close(); // Закрываем текущий браузер
