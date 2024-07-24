@@ -10,8 +10,7 @@ const { getCurrentIP, checkAccess } = require('./utils');
 
 puppeteer.use(StealhPlugin());
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
-    log(`Processing URL: ${url}`);
+async function extractMetafields(page) {
     const meta_data = await page.evaluate(() => {
         let getMetaAttribute = (selector, attribute, childSelector) => {
             const element = document.querySelector(selector);
@@ -201,7 +200,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let conferenceBlock = Array.from(document.querySelectorAll('.item-meta__info .item-meta-row')).filter(elem => elem.querySelector('.item-meta-row__label')?.innerText?.includes("Conference")).map(divBlock => divBlock.querySelector('.item-meta-row__value'))
         let conferenceBlocksArr = []
         if (conferenceBlock.length > 0){
-            conferenceBlocksArr = Array.from(conferenceBlock[0].querySelectorAll('div span')).map(elem => elem.innerText)
+            conferenceBlocksArr = Array.from(conferenceBlock[0].querySelectorAll('div span')).map(elem => elem.innerText.trim())
         } else {
             let breadcrumbsArr = document.querySelectorAll('.article__breadcrumbs .article__tocHeading');
             if (breadcrumbsArr.length > 0) {
@@ -236,6 +235,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             if (breadcrumbsArr.length > 0) {
                 conference_name = breadcrumbsArr[breadcrumbsArr.length - 1].innerText.trim();
             }
+            if (conferenceBlocksArr[0].match(/\d+ - \d+, \d+/)){
+                conference_dates = conferenceBlocksArr[0] || ""
+            }
         }
     
         var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '81': abstract, '235': publisher, '239': type, '201': keywords, '207': editors, '184': mf_issn, '185': mf_eissn, '205': language, '255': conference_place, '254': conference_name, '149': conference_dates, '193': book_pages, '240': mf_isbn};
@@ -246,8 +248,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // log(`Data extracted from ${url}`);
         // log(`Metadata: ${JSON.stringify(metadata)}`);
         return metadata;
-    }, log);
+    });
+    return meta_data;
+}
 
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+    log(`Processing URL: ${url}`);
+    const meta_data = await extractMetafields(page);
     if (!meta_data)
     {
         console.log(`Skipping from ${url} due to lack of metadata (title).`);
@@ -383,4 +390,58 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
     log('Crawling finished.');
 }
 
-module.exports = { crawl, extractData };
+async function parsing(jsonFolderPath,  htmlFolderPath,) {
+    log('Parsing Starting.');
+    {
+        let browser;
+        let page;
+
+        try {
+            browser = await puppeteer.launch({
+                //args: ['--proxy-server=127.0.0.1:8118'],
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+            });
+
+            page = await browser.newPage();
+
+            const htmlFiles = fs.readdirSync(htmlFolderPath);
+            const fieldsToUpdate = ['149', '254', '255'];
+            log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
+            for (const htmlFile of htmlFiles) {
+                const htmlFilePath = path.join(htmlFolderPath, htmlFile);
+                const jsonFilePath = path.join(jsonFolderPath, htmlFile.replace('.html', '.json'));
+                if (fs.existsSync(jsonFilePath)) {
+                    const urlToHtml = `file:///${htmlFilePath}`
+                    //const urlToHtml = htmlFilePath
+                    log(`Parsing html file: ${htmlFilePath}`);
+                    await page.goto(urlToHtml, { waitUntil: 'domcontentloaded', timeout: 70000 });
+                    
+                    log(`Html loaded: ${htmlFilePath}`);
+                    const updatedData = await extractMetafields(page);
+                    log(`New data from html file: ${htmlFilePath} parsed`);
+                    const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+                    for (const key of fieldsToUpdate) {
+                        if (updatedData.hasOwnProperty(key)) {
+                            jsonData[key] = updatedData[key];
+                        }
+                    }
+                    log(`Metafields successfully updates`);
+                    fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
+                } else {
+                    log(`html files ${htmlFilePath}, doesnt exist json file: ${jsonFilePath}`)
+                }
+            }
+            
+        } catch (error) {
+            log(`Error during parsing: ${error.message}`);
+        } finally {
+            if (browser) {
+                await browser.close(); // Закрываем текущий браузер
+            }
+        }
+    }
+
+    log('Parsing finished.');
+}
+
+module.exports = { crawl, extractData, parsing };
