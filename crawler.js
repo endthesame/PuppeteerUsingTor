@@ -200,13 +200,21 @@ async function extractMetafields(page) {
         let conferenceBlock = Array.from(document.querySelectorAll('.item-meta__info .item-meta-row')).filter(elem => elem.querySelector('.item-meta-row__label')?.innerText?.includes("Conference")).map(divBlock => divBlock.querySelector('.item-meta-row__value'))
         let conferenceBlocksArr = []
         if (conferenceBlock.length > 0){
-            conferenceBlocksArr = Array.from(conferenceBlock[0].querySelectorAll('div span')).map(elem => elem.innerText.trim())
+            conferenceBlocksArr = Array.from(conferenceBlock[0].querySelectorAll('div span'))
+            if (conferenceBlocksArr.length > 1 && conferenceBlocksArr.at(-1).classList.contains("space")){
+                conferenceBlocksArr = conferenceBlocksArr.map(elem => elem.innerText.trim());
+                conferenceBlocksArr[conferenceBlocksArr.length-2] = `${conferenceBlocksArr[conferenceBlocksArr.length-2]} ${conferenceBlocksArr[conferenceBlocksArr.length-1]}`;
+                conferenceBlocksArr.pop();
+            } else{
+                conferenceBlocksArr = conferenceBlocksArr.map(elem => elem.innerText.trim());
+            }
         } else {
             let breadcrumbsArr = document.querySelectorAll('.article__breadcrumbs .article__tocHeading');
             if (breadcrumbsArr.length > 0) {
                 conference_name = breadcrumbsArr[breadcrumbsArr.length - 1].innerText.trim();
             }
         }
+
         if (conferenceBlocksArr.length == 3){
             conference_name = conferenceBlocksArr[0] || "";
             conference_place = conferenceBlocksArr[1] || "";
