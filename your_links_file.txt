@@ -1,4 +1,3 @@
-title_url
 https://ieeexplore.ieee.org/servlet/opac?punumber=1450
 https://ieeexplore.ieee.org/servlet/opac?punumber=1294
 https://ieeexplore.ieee.org/servlet/opac?punumber=3330
