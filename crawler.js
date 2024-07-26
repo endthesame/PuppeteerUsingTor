@@ -209,7 +209,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
             page = await browser.newPage();
             await page.setViewport({ width: 1600, height: 900 });
-            await page.setJavaScriptEnabled(false)
+            //await page.setJavaScriptEnabled(false)
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
@@ -219,6 +219,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                 try {
                     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+                    //await page.waitForSelector('xpl-issue-results-list');
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     //await page.waitForTimeout(3000); // Задержка краулинга
 
