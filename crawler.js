@@ -117,7 +117,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
         if (authors == ""){
-            rawAuthors =  getMetaAttributes(['meta[name="dc.Creator""]'], 'content');
+            rawAuthors =  getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
         if (authors == ""){
