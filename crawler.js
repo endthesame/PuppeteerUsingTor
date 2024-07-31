@@ -239,7 +239,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                var pdfLinks = document.querySelector(".pdf-file a")?document.querySelector(".pdf-file a").href : "";
+                let pdfLinks = document.querySelector(".pdf-file a")?document.querySelector(".pdf-file a").href : "";
+                if (pdfLinks == ""){
+                    pdfLinks = document.querySelector(".info-panel__item .btn--pdf")?document.querySelector(".info-panel__item .btn--pdf").href : "";
+                }
                 if (!pdfLinks){
                     return null;
                 }
