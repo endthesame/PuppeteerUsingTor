@@ -93,11 +93,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         if (title == ""){
             let rawTitle =  document.querySelector('meta[name="dc.Title"]') ? document.querySelector('meta[name="dc.Title"]').content : "";
             let titleSubtitle = document.querySelector('meta[name="dc.Title.Subtitle"]') ? document.querySelector('meta[name="dc.Title.Subtitle"]').content : "";
-            title = `${rawTitle} : ${titleSubtitle}`;
+            if (titleSubtitle != ""){
+                title = `${rawTitle} : ${titleSubtitle}`;
+            } else {
+                title = rawTitle;
+            }
+            
         }
-        let date = getMetaAttributes(['meta[name="dc.Date"]'], 'content');
+        let date = getMetaAttribute(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)? getMetaAttribute(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)[0] : "";
         if (date == ""){
-            date = document.querySelector('.CitationCoverDate')? document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)?document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)[0] : "" : "" || document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";
+            date = document.querySelector('.CitationCoverDate')? document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)?document.querySelector('.CitationCoverDate').innerText.match(/\d{4}/)[0] : "" : "";
+        }
+        if (date == ""){
+            date = document.querySelector('.core-date-published')? document.querySelector('.core-date-published').innerText.match(/\d{4}/)?document.querySelector('.core-date-published').innerText.match(/\d{4}/)[0] : "" : ""
+        }
+        if (date == ""){
+            date = document.querySelector('.cover-date')? document.querySelector('.cover-date').innerText.match(/\d{4}/)? document.querySelector('.cover-date').innerText.match(/\d{4}/)[0] : "" : "";
         }
         if (date.length == 4){
             date = `${date}-01-01`;
@@ -105,6 +116,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         let rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        if (authors == ""){
+            rawAuthors =  getMetaAttributes(['meta[name="dc.Creator""]'], 'content');
+            authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        }
         if (authors == ""){
             rawAuthors =  Array.from(document.querySelectorAll('.authors span[property="author"]')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
@@ -131,10 +146,22 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         const mf_issn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/^ISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
         const mf_eissn = document.querySelector('.cover-image__details-extra')? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)? document.querySelector('.cover-image__details-extra').innerText.match(/EISSN:\n?(\d{4}-\d{3}[a-zA-Z]|\d{4}-\d{4})/)[1] : "" : "";
         const publisher = document.querySelector('.publisher__name')? document.querySelector('.publisher__name').innerText : "";
-        const volume = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/)[1] : "" : "";
-        const issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
-        const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
-        const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
+        let volume = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Volume (\d+)/)[1] : "" : "";
+        if (volume == ""){
+            volume = document.querySelector('.journal-meta .serial-info')? document.querySelector('.journal-meta .serial-info').innerText.match(/Volume (\d+)/) ? document.querySelector('.journal-meta .serial-info').innerText.match(/Volume (\d+)/)[1] : "" : "";
+        }
+        let issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
+        if (issue == ""){
+            issue = document.querySelector('.journal-meta .serial-info')? document.querySelector('.journal-meta .serial-info').innerText.match(/Issue (\d+)/) ? document.querySelector('.journal-meta .serial-info').innerText.match(/Issue (\d+)/)[1] : "" : "";
+        }
+        let first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
+        if (first_page == ""){
+            first_page = document.querySelector('[property="pageStart"]')? document.querySelector('[property="pageStart"]').innerText : "";
+        }
+        let last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
+        if (last_page == ""){
+            last_page = document.querySelector('[property="pageEnd"]')? document.querySelector('[property="pageEnd"]').innerText : "";
+        }
         let type = 'article'
         let editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
             return element !== "" && element !== " ";
@@ -145,7 +172,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             language = "eng";
         }
         // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
-        const keywords = getMetaAttributes(['meta[name="keywords"]'], 'content');
+        const keywords = getMetaAttribute(['meta[name="keywords"]'], 'content');
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -154,7 +181,10 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         //     abstractTexts.push(abstractSnapshot.snapshotItem(i).textContent);
         // }
         // const abstract = abstractTexts.join(' ') || "";
-        const abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ") : "";
+        let abstract = document.querySelector('.abstractSection')? document.querySelector('.abstractSection').innerText.trim().replaceAll("\n", " ") : "";
+        if (abstract == ""){
+            abstract = document.querySelector('#abstract')? document.querySelector('#abstract').innerText.trim().replaceAll("\n", " ") : "";
+        }
         
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
