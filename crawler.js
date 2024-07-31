@@ -13,6 +13,15 @@ puppeteer.use(StealhPlugin());
 async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
+        let getMetaAttribute = (selector, attribute, childSelector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                return targetElement.getAttribute(attribute) || "";
+            }
+            return "";
+        };
+
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
             for (const selector of selectors) {
@@ -96,12 +105,25 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         // const authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
         let rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
-
+        if (authors == ""){
+            rawAuthors =  Array.from(document.querySelectorAll('.authors span[property="author"]')).map(elem => elem.innerText)
+            authors = Array.from([...new Set(rawAuthors)]).join('; ')
+        }
 
         let mf_doi = getMetaAttributes(['meta[scheme="doi"]'], 'content'); 
         if (mf_doi == ""){
             mf_doi = document.querySelector('.issue-item__doi') ? document.querySelector('.issue-item__doi').innerText.replaceAll('https://doi.org/', '') : "";
         }
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('meta[name="publication_doi"]')? document.querySelector('meta[name="publication_doi"]').content.trim() : "";
+        }
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.core-self-citation .doi') ? document.querySelector('.core-self-citation .doi').innerText.replaceAll('https://doi.org/', '') : "";
+        }
+        if (mf_doi == ""){
+            mf_doi = document.querySelector('.published-info')? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/) ? document.querySelector('.published-info').innerText.trim().match(/DOI:(.*)/)[1].replace("https://doi.org/", "") : "" : "";
+        }
+
         let mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
         if (mf_journal == ""){
             mf_journal = document.querySelector('.issue-item__detail .epub-section__title')? document.querySelector('.issue-item__detail .epub-section__title').innerText : "";
@@ -113,10 +135,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         const issue = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/Issue (\d+)/)[1] : "" : "";
         const first_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[1] : "" : "";
         const last_page = document.querySelector('.issue-item__detail')? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/) ? document.querySelector('.issue-item__detail').innerText.match(/pp (\d+)–(\d+)/)[2] : "" : "";
-        let type = getMetaAttributes(['meta[name="og:type"]'], 'content');
-        if (type == ""){
-            type = getMetaAttributes(['meta[property="og:type"]'], 'content') || getMetaAttributes(['meta[name="dc.Type"]'], 'content')
-        }
+        let type = 'article'
         let editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
             return element !== "" && element !== " ";
           }).join("; ");
@@ -229,6 +248,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
             page = await browser.newPage();
             await page.setViewport({ width: 1600, height: 900 });
+            await page.setJavaScriptEnabled(false)
 
             // Проверка, есть ли еще ссылки для краулинга
             let remainingLinks = fs.readFileSync(linksFilePath, 'utf-8').split('\n').filter(link => link.trim() !== '');
