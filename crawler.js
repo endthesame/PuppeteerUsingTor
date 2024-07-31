@@ -218,8 +218,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
         let page;
 
         try {
-            await changeTorIp();
-            await getCurrentIP();
+            // await changeTorIp();
+            // await getCurrentIP();
 
             browser = await puppeteer.launch({
                 //args: ['--proxy-server=127.0.0.1:8118'],
@@ -240,11 +240,11 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                     //await page.waitForTimeout(3000); // Задержка краулинга
 
-                    if (await shouldChangeIP(page)) {
-                        log(`Retrying after changing IP.`);
-                        // Продолжаем внутренний цикл с новым браузером
-                        continue mainLoop;
-                    }
+                    // if (await shouldChangeIP(page)) {
+                    //     log(`Retrying after changing IP.`);
+                    //     // Продолжаем внутренний цикл с новым браузером
+                    //     continue mainLoop;
+                    // }
 
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
@@ -273,7 +273,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             }
         } catch (error) {
             log(`Error during crawling: ${error.message}`);
-            await changeTorIp(); // Меняем IP при ошибке
+            //await changeTorIp(); // Меняем IP при ошибке
         } finally {
             if (browser) {
                 await browser.close(); // Закрываем текущий браузер
