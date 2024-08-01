@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { crawl, extractData } = require('./crawler');
+const { crawl, extractData, parsing  } = require('./crawler');
 const { downloadPDFs } = require('./download-utils-puppeteer');
 const { checkAccess } = require('./utils');
 const {Command} = require('commander')
@@ -40,10 +40,12 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = false, checkOpenAccess = false);
+        //await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = false, checkOpenAccess = false);
         
         // Запуск скачивания PDF
-        await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        //await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);
+        // Запуск обновления метаполей (парсинга)
+        await parsing(jsonFolderPath, htmlFolderPath);
     } catch (error) {
         console.error(`Error during setup: ${error.message}`);
     }
