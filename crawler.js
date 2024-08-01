@@ -117,11 +117,11 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         let rawAuthors = Array.from(document.querySelectorAll('.loa__author-name span')).map(elem => elem.innerText)
         let authors = Array.from([...new Set(rawAuthors)]).join('; ')
         if (authors == ""){
-            rawAuthors =  Array.from(document.querySelectorAll('meta[name="dc.Creator"]')).map(elem => elem.content) 
+            rawAuthors =  Array.from(document.querySelectorAll('.authors span[property="author"]')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
         if (authors == ""){
-            rawAuthors =  Array.from(document.querySelectorAll('.authors span[property="author"]')).map(elem => elem.innerText)
+            rawAuthors =  Array.from(document.querySelectorAll('meta[name="dc.Creator"]')).map(elem => elem.content) 
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
         }
 

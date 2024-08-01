@@ -30,6 +30,7 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
 
     let browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
         //args: ['--proxy-server=127.0.0.1:8118'],
         headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
     });
@@ -68,8 +69,9 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         } catch (error) {
             log(`Cant download PDF file: ${error}`)
             await browser.close();
-            await new Promise(resolve => setTimeout(resolve, 20000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             browser = await puppeteer.launch({
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 //args: ['--proxy-server=127.0.0.1:8118'],
                 headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
