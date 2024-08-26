@@ -13,6 +13,15 @@ puppeteer.use(StealhPlugin());
 async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
     log(`Processing URL: ${url}`);
     const meta_data = await page.evaluate(() => {
+        let getMetaAttribute = (selector, attribute, childSelector) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const targetElement = childSelector ? element.querySelector(childSelector) : element;
+                return targetElement.getAttribute(attribute) || "";
+            }
+            return "";
+        };
+
         const getMetaAttributes = (selectors, attribute, childSelector) => {
             let values = [];
             for (const selector of selectors) {
@@ -31,15 +40,15 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             return values.join('; ');
         };
     
-        let title = getMetaAttributes(['meta[name="dc.Title"]'], 'content')
+        let title = getMetaAttribute(['meta[name="dc.Title"]'], 'content')
         if (title == ""){
             title = document.querySelector('.article_header-title')? document.querySelector('.article_header-title').innerText.trim().replaceAll("\n", " ") : "";
         }
-        var date = document.querySelector('.pub-date-value')? document.querySelector('.pub-date-value').innerText.match(/\d{4}/)?document.querySelector('.pub-date-value').innerText.match(/\d{4}/)[0] : "" : "";
+        let date = document.querySelector('.pub-date-value')? document.querySelector('.pub-date-value').innerText.match(/\d{4}/)?document.querySelector('.pub-date-value').innerText.match(/\d{4}/)[0] : "" : "";
         if (date.length == 4){
             date = `${date}-01-01`;
         }
-        let authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content');
+        let authors = getMetaAttributes(['meta[name="dc.Creator"]'], 'content').replaceAll("  ", " ");
         if (authors == ""){
             let rawAuthors = Array.from(document.querySelectorAll('.hlFld-ContribAuthor')).map(elem => elem.innerText)
             authors = Array.from([...new Set(rawAuthors)]).join('; ')
@@ -49,13 +58,13 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         if (mf_doi == ""){
             mf_doi = document.querySelector('.article_header-doiurl')?document.querySelector('.article_header-doiurl').innerText?.replaceAll('https://doi.org/', '').replace("DOI: ", "") : "";
         }
-        let mf_journal = getMetaAttributes(['meta[name="citation_journal_title"]'], 'content');
+        let mf_journal = getMetaAttribute(['meta[name="citation_journal_title"]'], 'content');
         if (mf_journal == ""){
             mf_journal = document.querySelector('.aJhp_link')? document.querySelector('.aJhp_link').innerText : "";
         }
         const mf_issn = '';
         const mf_eissn = '';
-        let publisher = getMetaAttributes(['meta[name="dc.Publisher"]'], 'content')
+        let publisher = getMetaAttribute(['meta[name="dc.Publisher"]'], 'content')
         if (publisher == ""){
             publisher = document.querySelector('.NLM_publisher-name')? document.querySelector('.NLM_publisher-name').innerText : "";
         }
@@ -64,7 +73,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         const first_page = document.querySelector('.cit-pageRange')? document.querySelector('.cit-pageRange').innerText.match(/(\d+)–(\d+)/)? document.querySelector('.cit-pageRange').innerText.match(/(\d+)–(\d+)/)[1] : "" : "";
         const last_page = document.querySelector('.cit-pageRange')? document.querySelector('.cit-pageRange').innerText.match(/(\d+)–(\d+)/)? document.querySelector('.cit-pageRange').innerText.match(/(\d+)–(\d+)/)[2] : "" : "";
         //const pages = document.querySelector('.cover-pages')? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)? document.querySelector('.cover-pages').innerText.match(/(\d+)\s+pages/)[1] : "" : "";
-        const type = document.querySelector('.content-navigation__contentType')? document.querySelector('.content-navigation__contentType').innerText : "";
+        const type = "article"
         // var editors = Array.from(document.querySelectorAll('.cover-image__details-extra ul[title="list of authors"] li')).map(elem => elem.firstChild.innerText).map(elem => elem.replace("Editors:", "")).map(elem => elem.replace("Editor:", "")).map(elem => elem.replace(",", "")).filter(function(element) {
         //     return element !== "" && element !== " ";
         //   }).join("; ");
@@ -74,7 +83,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
 
         //const volume 
 
-        let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+        let language = getMetaAttribute(['meta[name="dc.Language"]'], 'content');
         if (language == "EN"){
             language = "eng";
         }
@@ -152,16 +161,14 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             }
         }
 
-        (async () => {
-            const htmlSource = await page.content();
-            fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
-              if (err) {
-                console.error('Error saving HTML to file:', err);
-              } else {
-                console.log('HTML saved to file successfully');
-              }
-            });
-        })();
+        const htmlSource = await page.content();
+        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+            if (err) {
+                log('Error saving HTML to file:', err);
+            } else {
+                log('HTML saved to file successfully');
+            }
+        });
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
@@ -200,7 +207,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             browser = await puppeteer.launch({
                 args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
@@ -219,8 +226,9 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
 
                 try {
                     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
+                    await new Promise(resolve => setTimeout(resolve, 1000));
 
-                    await page.waitForTimeout(1000); // Задержка краулинга
+                    //await page.waitForTimeout(1000); // Задержка краулинга
 
                     // if (await shouldChangeIP(page)) {
                     //     log(`Retrying after changing IP.`);
