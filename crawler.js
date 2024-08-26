@@ -99,15 +99,19 @@ async function extractMetafields(page) {
     
         let title = document.querySelector('.document-title')? document.querySelector('.document-title').innerText.trim() : "";
         if (title == ""){
+            title = mf_dict["title"] || "";
+        }
+        if (title == ""){
             title = document.querySelector('meta[property="og:title"]')? document.querySelector('meta[property="og:title"]').content.trim() : "";
-            if (title == ""){
-                title = mf_dict["title"] || "";
-            }
         }
 
-        let date = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Date of Publication:.*(\d{4})/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Date of Publication:.*(\d{4})/)[1] : "" : "";
+        let date = document.querySelector('.doc-abstract-confdate')? document.querySelector('.doc-abstract-confdate').innerText.match(/(\d{4})/)? document.querySelector('.doc-abstract-confdate').innerText.match(/(\d{4})/)[1] : "" : "";
         if (date == ""){
-            date = mf_dict["copyrightYear"] || mf_dict["publicationYear"] ||  ""
+            date = mf_dict["publicationYear"]?mf_dict["publicationYear"].match(/\d{4}/)?mf_dict["publicationYear"].match(/\d{4}/)[0] : "" : "";
+            //date = document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)')? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)[1] : "" : "";
+        }
+        if (date == ""){
+            mf_dict["publicationDate"]?mf_dict["publicationDate"].match(/\d{4}/)?mf_dict["publicationDate"].match(/\d{4}/)[0] : "" : "";
             //date = document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)')? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)? document.querySelector('#LayoutWrapper > div:nth-child(1) > div:nth-child(1) > script:nth-child(4)').innerText.match(/"copyrightYear":"(\d{4})"/)[1] : "" : "";
         }
         if (date.length == 4){
@@ -169,9 +173,9 @@ async function extractMetafields(page) {
         }
 
         //let full_book_name_node = document.querySelector('.book-info__title');
-        let mf_journal = mf_dict["publicationTitle"] || "";
-        if (mf_journal == ""){
-            mf_journal = document.querySelector('a.stats-document-abstract-publishedIn')? document.querySelector('a.stats-document-abstract-publishedIn').innerText.trim() : "";
+        let mf_book = mf_dict["publicationTitle"] || "";
+        if (mf_book == ""){
+            mf_book = document.querySelector('.stats-document-abstract-publishedIn')? document.querySelector('.stats-document-abstract-publishedIn').innerText.trim() : "";
         }
         
         let volume = mf_dict["volume"] || "";
@@ -183,7 +187,7 @@ async function extractMetafields(page) {
             issue = document.querySelector('.stats-document-abstract-publishedIn')? document.querySelector('.stats-document-abstract-publishedIn').innerText.match(/Issue: (\d+),/)? document.querySelector('.stats-document-abstract-publishedIn').innerText.match(/Issue: (\d+),/)[1] : "" : "";
         }
 
-        let printIssnObj = mf_dict.issn.find(function(issnObj) {
+        let printIssnObj = mf_dict?.issn?.find(function(issnObj) {
             return issnObj.format === "Print ISSN";
         });
         let mf_issn = printIssnObj?.value || "";
@@ -191,16 +195,31 @@ async function extractMetafields(page) {
             mf_issn = document.querySelector('.row.g-0.u-pt-1')? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Print ISSN: ([0-9-]+)/)? document.querySelector('.row.g-0.u-pt-1').innerText.match(/Print ISSN: ([0-9-]+)/)[1] : "" : "";
         }
         
-        let eIssnObj = mf_dict.issn.filter(function(issnObj) {
+        let eIssnObj = mf_dict?.issn?.filter(function(issnObj) {
             return issnObj.format == "Online ISSN" || issnObj.format == "Electronic ISSN";
         });
-        let mf_eissn = eIssnObj.map(elem => elem.value).join(";") || "";
+        let mf_eissn = eIssnObj?.map(elem => elem.value).join(";") || "";
         if (mf_eissn == ""){
             mf_eissn = Array.from(document.querySelectorAll('.row.g-0.u-pt-1 .abstract-metadata-indent div')).filter(isbn => isbn.innerText.includes("Online ISSN") || isbn.innerText.includes("Electronic ISSN")).map(isbn => isbn.innerText.replaceAll("Online ISSN: ", "").replaceAll("Electronic ISSN: ", "")).join(";")
             if (mf_eissn){
                 mf_eissn = Array.from(document.querySelectorAll('.row.g-0.u-pt-1 .u-pb-1')).filter(isbn => isbn.innerText.includes("Online ISSN") || isbn.innerText.includes("Electronic ISSN")).map(isbn => isbn.innerText.replaceAll("Online ISSN:", "").replaceAll("Electronic ISSN:", "").trim()).join(";")
             }
         }
+
+        let mf_isbn = "";
+        let mf_eisbn = "";
+
+        let printIsbnObj = mf_dict?.isbn?.find(function(isbnObj) {
+            return isbnObj.format === "Print ISBN";
+        });
+        mf_isbn = printIsbnObj?.value || "";
+
+
+        let eIsbnObj = mf_dict?.isbn?.filter(function(isbnObj) {
+            return isbnObj.format == "Online ISBN" || isbnObj.format == "Electronic ISBN";
+        });
+        mf_eisbn = eIsbnObj.map(elem => elem.value).join(";") || "";
+
 
         // let mf_issn = "";
         // let printIssn = Array.from(document.querySelectorAll('.book-info__isbn')).map(elem => elem.innerText).filter(elem => elem.includes("Print ISSN:"))
@@ -225,7 +244,7 @@ async function extractMetafields(page) {
         // if (pages == ""){
         //     pages = mf_dict["pages"] || ""
         // }
-        const type = "article"
+        const type = "conference article"
         // let editorsArray = Array.from(document.querySelectorAll('.book-info__authors .al-authors-list.editors .linked-name')).map(elem => elem.innerText.trim())
         // let editors = Array.from([...new Set(editorsArray)]).join('; ')
         // let raw_editors_aff = Array.from(document.querySelectorAll('.book-info__authors .editors .al-author-name .info-card-author'))
@@ -253,7 +272,10 @@ async function extractMetafields(page) {
         //let rawKeywords =Array.from(document.querySelectorAll('#keywords_list .intent_text')).map(elem => elem.innerText.replaceAll(",", "").trim())
         let keywords = "";
         if (mf_dict.keywords && mf_dict.keywords[0] && mf_dict.keywords[0].kwd) {
-            keywords = mf_dict.keywords[0].kwd.join(";");
+            keywords = mf_dict.keywords[0].kwd.join(";") || "";
+        }
+        if(keywords == "" && mf_dict.pubTopics){
+            keywords = mf_dict.pubTopics.join(";") || "";
         }
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
@@ -321,8 +343,14 @@ async function extractMetafields(page) {
 
         //Type
         // const orcid = getMetaAttributes(['.orcid.ver-b'], 'href', 'a');
+
+        let conference_place = mf_dict.confLoc || "";
+        let conference_name = mf_dict.publicationTitle || "";
+        let conference_dates = mf_dict.displayPublicationDate || "";
+        let persistentLink = mf_dict.persistentLink || "";
+
     
-        var metadata = {'202': title, '200': authors, '203': date, '81': abstract, '184': mf_issn, '185': mf_eissn, '201': keywords, '239': type, '235': publisher, '144': author_aff, '234': authors_orcid, '232': mf_journal, '233': mf_doi, '197':first_page, '198':last_page, '176': volume, '208': issue};
+        var metadata = {'202': title, '200': authors, '203': date, '81': abstract, '184': mf_issn, '185': mf_eissn, '201': keywords, '239': type, '235': publisher, '144': author_aff, '234': authors_orcid, '233': mf_doi, '197':first_page, '198':last_page, '176': volume, '208': issue, '242':mf_book, '240': mf_isbn, '241': mf_eisbn, '217': persistentLink, '254': conference_name, '255': conference_place, '149': conference_dates};
         if (!title)
         {
             metadata = false
@@ -343,7 +371,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         return;
     }
 
-    meta_data["217"] = url; //mf_url
+    if (meta_data["217"] = "" || !meta_data["217"]){
+        meta_data["217"] = url; //mf_url
+    }
     const data = meta_data;
 
     var pdfLinksToDownload = [];
