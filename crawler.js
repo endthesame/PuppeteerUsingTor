@@ -207,7 +207,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             browser = await puppeteer.launch({
                 args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
+                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
