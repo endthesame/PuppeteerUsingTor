@@ -21,6 +21,7 @@ async function main() {
             .option('-t, --use_tor', 'type this if you want to use tor for crawling')
             .option('-e, --task <path>', 'path to task extractor', path.join(__dirname, 'tasks/sample_task.js'))
             .option('-l, --links <path>', 'path to file with links', path.join(__dirname, 'your_links_file.txt'))
+            .option('-ss, --upload_ssh', 'type this if you want to upload source data via ssh')
             .helpOption('-e, --HELP', 'read more information');
 
         program.parse();
@@ -46,7 +47,7 @@ async function main() {
         fs.copyFileSync(sourceLinks, linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, task_path=program.opts().task, downloadPDFmark = program.opts().download_pdf, checkOpenAccess = program.opts().open_access, useTor=program.opts().use_tor);
+        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, task_path=program.opts().task, downloadPDFmark = program.opts().download_pdf, checkOpenAccess = program.opts().open_access, useTor=program.opts().use_tor, uploadViaSSH = program.opts().upload_ssh);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);

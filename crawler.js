@@ -7,6 +7,7 @@ const {changeTorIp, shouldChangeIP} = require('./tor-config');
 const log = require('./logger');
 const crypto = require('crypto');
 const { getCurrentIP, checkAccess } = require('./utils');
+const { uploadFilesViaSSH } = require('./sshUpload');
 
 puppeteer.use(StealhPlugin());
 
@@ -20,7 +21,7 @@ async function extractMetafields(page, task_path) {
     }
 }
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false, uploadViaSSH = false) {
     log(`Processing URL: ${url}`);
     const meta_data = await extractMetafields(page, task_path);
     if (meta_data == false)
@@ -44,14 +45,19 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
+    const htmlFilePath = path.join(htmlFolderPath, `${baseFileName}.html`);
     const htmlSource = await page.content();
-    fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
+    fs.writeFile(htmlFilePath, htmlSource, (err) => {
       if (err) {
         console.error('Error saving HTML to file:', err);
       } else {
         console.log('HTML saved to file successfully');
       }
     });
+
+    if (uploadViaSSH) {
+        await uploadFilesViaSSH(jsonFilePath, htmlFilePath);
+    }
 
     if (downloadPDFmark) {
         let isOpenAccess = true;
@@ -134,7 +140,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark, checkOpenAccess);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark, checkOpenAccess, uploadViaSSH);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
