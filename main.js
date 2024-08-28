@@ -18,6 +18,7 @@ async function main() {
             .option('-o, --output <path>', 'path to output filder', path.join(__dirname, 'output'))
             .option('-d, --download_pdf', 'type this if you want to download pdfs')
             .option('-oa, --open_access', 'type this if you want to check open access before download')
+            .option('-ss, --upload_ssh', 'type this if you want to upload source data via ssh')
 
         program.parse();
 
@@ -40,7 +41,7 @@ async function main() {
         fs.copyFileSync('your_links_file.txt', linksFilePath);
         
         // Запуск краулинга
-        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false);
+        await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark = true, checkOpenAccess = false, uploadViaSSH = program.opts().upload_ssh);
         
         // Запуск скачивания PDF
         await downloadPDFs(path.join(siteFolderPath, "Links.txt"), pdfFolderPath);

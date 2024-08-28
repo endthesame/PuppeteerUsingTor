@@ -7,6 +7,7 @@ const {changeTorIp, shouldChangeIP} = require('./tor-config');
 const log = require('./logger');
 const crypto = require('crypto');
 const { getCurrentIP, checkAccess } = require('./utils');
+const { uploadFilesViaSSH } = require('./sshUpload');
 
 puppeteer.use(StealhPlugin());
 
@@ -136,7 +137,7 @@ async function extractMetafields(page) {
     return meta_data
 }
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark = true, checkOpenAccess = true, uploadViaSSH = false) {
     log(`Processing URL: ${url}`);
     const meta_data = await extractMetafields(page);
 
@@ -158,6 +159,20 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const jsonData = JSON.stringify(data, null, 2);
     fs.writeFileSync(jsonFilePath, jsonData);
 
+    const htmlFilePath = path.join(htmlFolderPath, `${baseFileName}.html`);
+    const htmlSource = await page.content();
+    fs.writeFile(htmlFilePath, htmlSource, (err) => {
+        if (err) {
+            log('Error saving HTML to file:', err);
+        } else {
+            log('HTML saved to file successfully');
+        }
+    });
+
+    if (uploadViaSSH) {
+        await uploadFilesViaSSH(jsonFilePath, htmlFilePath);
+    }
+
     if (downloadPDFmark) {
         let isOpenAccess = true;
         if (checkOpenAccess) {
@@ -168,15 +183,6 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
                 return true; // Если нет open access, пропустить обработку URL
             }
         }
-
-        const htmlSource = await page.content();
-        fs.writeFile(`${htmlFolderPath}/${baseFileName}.html`, htmlSource, (err) => {
-            if (err) {
-                log('Error saving HTML to file:', err);
-            } else {
-                log('HTML saved to file successfully');
-            }
-        });
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
@@ -203,7 +209,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     return true;
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, downloadPDFmark, checkOpenAccess, uploadViaSSH) {
     mainLoop: while (true) {
         let browser;
         let page;
@@ -247,7 +253,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
                     //ИЗМЕНЕНО ДЛЯ COLAB: ЕСЛИ НЕ НАЙДЕНО ЧТО-ТО ИЗ ВАЖНОЕ ИЗ МЕТЫ ТО СТОПИТСЯ ПРОЦЕСС
-                    var isOkay = await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess);
+                    var isOkay = await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, url, downloadPDFmark, checkOpenAccess, uploadViaSSH);
 
                     if (isOkay) {
                         log(`Successfully processed ${url}`);
