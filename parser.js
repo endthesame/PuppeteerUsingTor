@@ -50,7 +50,7 @@ async function parsing(jsonFolderPath, htmlFolderPath, task_path) {
             log(`Error during parsing: ${error.message}`);
         } finally {
             if (browser) {
-                await browser.close(); // Закрываем текущий браузер
+                await browser.close();
             }
         }
     }

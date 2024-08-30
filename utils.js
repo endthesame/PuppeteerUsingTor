@@ -26,10 +26,10 @@ async function checkAccess(page) {
         for (const classSelector of classesToCheck) {
             const elements = document.querySelectorAll(classSelector);
             if (elements.length > 0) {
-                return true; // Нашли хотя бы один элемент
+                return true;
             }
         }
-        return false; // Не нашли ни одного элемента
+        return false;
     });
 }
 
