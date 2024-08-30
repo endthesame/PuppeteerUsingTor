@@ -1,5 +1,5 @@
 const request = require('request');
-const log = require('./logger');
+const log = require('../logger');
 
 async function getCurrentIP() {
     return new Promise((resolve, reject) => {

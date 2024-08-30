@@ -3,11 +3,11 @@ const { TimeoutError } = require('puppeteer');
 const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
-const {changeTorIp, shouldChangeIP} = require('./tor-config');
+const {changeTorIp, shouldChangeIP} = require('./utils/tor-config');
 const log = require('./logger');
 const crypto = require('crypto');
-const { getCurrentIP, checkAccess } = require('./utils');
-const { uploadFilesViaSSH } = require('./sshUpload');
+const { getCurrentIP, checkAccess } = require('./utils/utils');
+const { uploadFilesViaSSH } = require('./utils/sshUpload');
 
 puppeteer.use(StealhPlugin());
 
@@ -30,7 +30,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
         return;
     }
     if (meta_data == null) {
-        console.log(`Skipping from ${url} due to bad task.`);
+        console.log(`Skipping from ${url} due to bad task or bad loaded page.`);
     }
 
     meta_data["217"] = url; //mf_url
@@ -128,7 +128,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                 const url = remainingLinks[0].trim();
 
                 try {
-                    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+                    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     //await page.waitForTimeout(1000); // Задержка краулинга
 

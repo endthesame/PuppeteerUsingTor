@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { crawl } = require('./crawler');
-const { parsing } = require('./parser'); 
-const { downloadPDFs } = require('./download-utils-puppeteer');
+const { crawl } = require('./src/crawler');
+const { parsing } = require('./src/parser'); 
+const { downloadPDFs } = require('./src/download-utils-puppeteer');
 const {Command} = require('commander')
 
 async function setupDirectories(options) {
@@ -40,23 +40,23 @@ async function main() {
         .option('-o, --output <path>', 'path to output folder', path.join(__dirname, 'output'))
         .option('-e, --task <path>', 'path to task extractor', path.join(__dirname, 'tasks/sample_task.js'))
         .option('-l, --links <path>', 'path to file with links', path.join(__dirname, 'your_links_file.txt'))
-        .helpOption('-e, --HELP', 'read more information');
+        .helpOption('-h, --HELP', 'read more information');
 
     // crawling command
     program
         .command('crawl')
         .description('Run the crawler and optionally download PDFs')
         .option('-d, --download_pdf', 'download PDFs after crawling')
-        .option('-oa, --open_access', 'check open access before download')
+        .option('-a, --open_access', 'check open access before download')
         .option('-t, --use_tor', 'use Tor for crawling')
-        .option('-ss, --upload_ssh', 'upload source data via SSH')
+        .option('-s, --upload_ssh', 'upload source data via SSH')
         .action(async (options) => {
             const globalOptions = program.opts();
             const { siteFolderPath, jsonFolderPath, pdfFolderPath, htmlFolderPath, linksFilePath } = await setupDirectories(globalOptions);
 
             // launch crawling
             await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, {
-                taskPath: globalOptions.task,
+                taskPath: path.isAbsolute(globalOptions.task)? globalOptions.task : path.join(__dirname, globalOptions.task),
                 downloadPDF: options.download_pdf,
                 checkOpenAccess: options.open_access,
                 useTor: options.use_tor,

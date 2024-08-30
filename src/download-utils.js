@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const {changeTorIp} = require('./tor-config');
+const {changeTorIp} = require('./utils/tor-config');
 
 async function downloadPDFs(linksFilePath, pdfFolderPath) {
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');

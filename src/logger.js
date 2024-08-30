@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { PROJECT_ROOT } = require('../config');
 
-const logsFolderPath = path.join(__dirname, 'logs');
+const logsFolderPath = path.join(PROJECT_ROOT, 'logs');
 
 // Создать структуру папок для логов, если она не существует
 if (!fs.existsSync(logsFolderPath)) fs.mkdirSync(logsFolderPath);

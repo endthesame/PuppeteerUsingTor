@@ -2,8 +2,7 @@ const puppeteer = require('puppeteer-extra');
 const StealhPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
-const {changeTorIp, shouldChangeIP} = require('./tor-config');
+const {changeTorIp, shouldChangeIP} = require('./utils/tor-config');
 const log = require('./logger');
 
 puppeteer.use(StealhPlugin());

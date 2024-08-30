@@ -1,22 +1,16 @@
+const path = require('path');
 const { exec } = require('child_process');
-const puppeteer = require('puppeteer-extra');
-const log = require('./logger');
+const log = require('../logger');
 const { getCurrentIP } = require('./utils');
+const { changingIPProcess } = require('./changeTorIp')
 
 async function changeTorIp() {
-    return new Promise((resolve, reject) => {
-        exec('python change_tor_ip.py', (error, stdout, stderr) => {
-            if (error) {
-                log(`Error: ${error.message}`);
-                reject(error);
-            }
-            if (stderr) {
-                log(`Error: ${stderr}`);
-                reject(stderr);
-            }
-            resolve(stdout);
-        });
-    });
+    try {
+        const result = await changingIPProcess();
+        log(result); // Сообщение о успешной смене IP
+    } catch (error) {
+        log('Error changing IP:', error.message); // Сообщение об ошибке
+    }
 }
 
 async function shouldChangeIP(page) {
