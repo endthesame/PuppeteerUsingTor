@@ -21,7 +21,7 @@ async function extractMetafields(page, task_path) {
     }
 }
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = true, checkOpenAccess = true, onlyjson = false, uploadViaSSH = false) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = false, checkOpenAccess = false, onlyjson = false, uploadViaSSH = false) {
     log(`Processing URL: ${url}`);
     const meta_data = await extractMetafields(page, task_path);
     if (meta_data == false)
@@ -49,9 +49,9 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     const htmlSource = await page.content();
     fs.writeFile(htmlFilePath, htmlSource, (err) => {
       if (err) {
-        console.error('Error saving HTML to file:', err);
+        log('Error saving HTML to file:', err);
       } else {
-        console.log('HTML saved to file successfully');
+        log('HTML saved to file successfully');
       }
     });
 
@@ -97,7 +97,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
     }
 }
 
-async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, task_path, downloadPDFmark, checkOpenAccess, useTor) {
+async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, options) {
+    const { taskPath, downloadPDFmark, checkOpenAccess, useTor, uploadViaSSH } = options;
     mainLoop: while (true) {
         let browser;
         let page;
@@ -140,7 +141,7 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
                     // Проверка, что основной документ полностью загружен
                     await page.waitForSelector('body');
 
-                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark, checkOpenAccess, uploadViaSSH);
+                    await extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, taskPath, url, downloadPDFmark, checkOpenAccess, uploadViaSSH);
                     log(`Successfully processed ${url}`);
 
                     // Убираем обработанную ссылку из файла
@@ -175,58 +176,4 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
     log('Crawling finished.');
 }
 
-async function parsing(jsonFolderPath,  htmlFolderPath,) {
-    log('Parsing Starting.');
-    {
-        let browser;
-        let page;
-
-        try {
-            browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
-            });
-
-            page = await browser.newPage();
-
-            const htmlFiles = fs.readdirSync(htmlFolderPath);
-            const fieldsToUpdate = ['144', '146', '212', '199', '234'];
-            log(`Fields to update: ${fieldsToUpdate.join(", ")}`);
-            for (const htmlFile of htmlFiles) {
-                const htmlFilePath = path.join(htmlFolderPath, htmlFile);
-                const jsonFilePath = path.join(jsonFolderPath, htmlFile.replace('.html', '.json'));
-                if (fs.existsSync(jsonFilePath)) {
-                    const urlToHtml = `file:///${htmlFilePath}`
-                    //const urlToHtml = htmlFilePath
-                    log(`Parsing html file: ${htmlFilePath}`);
-                    await page.goto(urlToHtml, { waitUntil: 'domcontentloaded', timeout: 70000 });
-                    
-                    log(`Html loaded: ${htmlFilePath}`);
-                    const updatedData = await extractMetafields(page);
-                    log(`New data from html file: ${htmlFilePath} parsed`);
-                    const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
-                    for (const key of fieldsToUpdate) {
-                        if (updatedData.hasOwnProperty(key)) {
-                            jsonData[key] = updatedData[key];
-                        }
-                    }
-                    log(`Metafields successfully updates`);
-                    fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
-                } else {
-                    log(`html files ${htmlFilePath}, doesnt exist json file: ${jsonFilePath}`)
-                }
-            }
-            
-        } catch (error) {
-            log(`Error during parsing: ${error.message}`);
-        } finally {
-            if (browser) {
-                await browser.close(); // Закрываем текущий браузер
-            }
-        }
-    }
-
-    log('Parsing finished.');
-}
-
-module.exports = { crawl, extractData, parsing };
+module.exports = { crawl, extractData, extractMetafields };

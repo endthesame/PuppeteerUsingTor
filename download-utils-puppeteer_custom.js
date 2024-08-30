@@ -26,8 +26,17 @@ async function downloadPDFs(linksFilePath, pdfFolderPath) {
         }
     }));
 
+    if (!fs.existsSync(linksFilePath)) {
+        log(`File with links to download pdf was not found: ${linksFilePath}`);
+        return; // Выход из функции
+    }
 
     const links = fs.readFileSync(linksFilePath, 'utf-8').split('\n');
+
+    if (links.length === 0) {
+        log(`File with links to download pdf was empty: ${linksFilePath}`);
+        return; // Выход из функции
+    }
 
     let browser = await puppeteer.launch({
         args: ['--proxy-server=127.0.0.1:8118'],
