@@ -98,10 +98,10 @@ module.exports = function extractMetadata() {
         date = `${date}-01-01`;
     }
 
-    let rawAuthors = Array.from(document.querySelectorAll('meta[name="citation_author"]')).map(author => author.content.trim())
+    let rawAuthors = Array.from(document.querySelectorAll('.book-metadata-author')).map(author => author.innerText.trim())
     let authors = [... new Set(rawAuthors)].join('; ')
     if (authors == ""){
-        rawAuthors = Array.from(document.querySelectorAll('.book-metadata-author')).map(author => author.innerText.trim())
+        rawAuthors = Array.from(document.querySelectorAll('meta[name="citation_author"]')).map(author => author.content.trim())
         authors = [... new Set(rawAuthors)].join('; ')
     }
 
@@ -126,9 +126,9 @@ module.exports = function extractMetadata() {
         }
     }
 
-    let mf_book = getMetaAttribute(['meta[name="citation_title"]'], 'content')
+    let mf_book = document.querySelector('.book-info-holder .text-holder h1')? document.querySelector('.book-info-holder .text-holder h1').innerText.trim() : "";
     if (mf_book == ""){
-        mf_book = document.querySelector('.book-info-holder .text-holder h1')? document.querySelector('.book-info-holder .text-holder h1').innerText.trim() : "";
+        mf_book = getMetaAttribute(['meta[name="citation_title"]'], 'content')
     }
 
     // let volume = getMetaAttribute(['meta[name="citation_volume"]'], 'content')
