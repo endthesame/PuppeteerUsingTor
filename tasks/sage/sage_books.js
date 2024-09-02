@@ -176,6 +176,9 @@ module.exports = function extractMetadata() {
     }
 
     let abstract = document.querySelector('.books-holder #tabstrip-1 p')? document.querySelector('.books-holder #tabstrip-1 p').innerText.trim() : "";
+    if (abstract == ""){
+        abstract = document.querySelector('[type="application/ld+json"]')? document.querySelector('[type="application/ld+json"]').innerText.match(/"description":"(.*)","image/)? document.querySelector('[type="application/ld+json"]').innerText.match(/"description":"(.*)","image/)[1].replaceAll("'", "") : "" : "";
+    }
     
     let rawKeywords = Array.from(document.querySelectorAll('[name="citation_keywords"]')).map(elem => elem.content)
     let keywords = [... new Set(rawKeywords)].join(';')
