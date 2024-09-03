@@ -65,7 +65,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             isOpenAccess = await checkAccess(page);
     
             if (!isOpenAccess) {
-                console.log(`Skipping downloading PDF from ${url} due to lack of open access.`);
+                log(`Skipping downloading PDF from ${url} due to lack of open access.`);
                 return; // Если нет open access, пропустить обработку URL
             }
         }
@@ -89,6 +89,7 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
 
             if (pdfLinksToDownload){
+                log(`PDF link for ${url} was found`)
                 const pdfFileName = baseFileName + '.pdf';
                 const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
                 fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
