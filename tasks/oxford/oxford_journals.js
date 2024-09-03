@@ -108,22 +108,36 @@ module.exports = function extractMetadata() {
     }
 
     function getAff() {
-        let affs = Array.from(document.querySelectorAll('.al-author-name')).map(author => {
-            let authorName = author.querySelector('.linked-name')? author.querySelector('.linked-name').innerText : "";
-            let aff = author.querySelector('.aff')? author.querySelector('.aff').innerText.trim() : "";
-            if (authorName.length > 2 && aff.length > 2 ){
-              return `${authorName} : ${aff}`
-            }
-        }).filter(item => item !== undefined).join(";; ")
-        if (affs == ""){
-            affs = Array.from(document.querySelectorAll('.al-author-name-more')).map(author => {
-                let authorName = author.querySelector('.linked-name')? author.querySelector('.linked-name').innerText : "";
-                let aff = author.querySelector('.aff')? author.querySelector('.aff').innerText.trim() : "";
-                if (authorName.length > 2 && aff.length > 2 ){
-                  return `${authorName} : ${aff}`
-                }
-            }).filter(item => item !== undefined).join(";; ")
+        function getAffText(affElement) {
+            return Array.from(affElement.children)
+                .filter(child => !child.classList.contains('title-label'))
+                .map(child => child.innerText.trim())
+                .filter(text => text.length > 0)
+                .join(', ');
         }
+    
+        let affs = Array.from(document.querySelectorAll('.al-author-name')).map(author => {
+            let authorName = author.querySelector('.linked-name') ? author.querySelector('.linked-name').innerText : "";
+            let affElement = author.querySelector('.aff');
+            let aff = affElement ? getAffText(affElement) : "";
+    
+            if (authorName.length > 2 && aff.length > 2) {
+                return `${authorName} : ${aff}`;
+            }
+        }).filter(item => item !== undefined).join(";; ");
+    
+        if (affs == "") {
+            affs = Array.from(document.querySelectorAll('.al-author-name-more')).map(author => {
+                let authorName = author.querySelector('.linked-name') ? author.querySelector('.linked-name').innerText : "";
+                let affElement = author.querySelector('.aff');
+                let aff = affElement ? getAffText(affElement) : "";
+    
+                if (authorName.length > 2 && aff.length > 2) {
+                    return `${authorName} : ${aff}`;
+                }
+            }).filter(item => item !== undefined).join(";; ");
+        }
+    
         return affs;
     }
 
@@ -200,8 +214,14 @@ module.exports = function extractMetadata() {
     }
     
     const publisher = getMetaAttribute(['meta[name="citation_publisher"]'], 'content') || "";
-    const volume = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_volume"]'], 'content')) || "";
-    const issue = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_issue"]'], 'content')) || "";
+    let volume = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_volume"]'], 'content')) || "";
+    if (volume == ""){
+        volume = document.querySelector('.ww-citation-primary')? document.querySelector('.ww-citation-primary').innerText.match(/Volume (\d+), /)? document.querySelector('.ww-citation-primary').innerText.match(/Volume (\d+), /)[1] : "" : "";
+    }
+    let issue = romanToNumberOrReturn(getMetaAttribute(['meta[name="citation_issue"]'], 'content')) || "";
+    if (issue == ""){
+        issue = document.querySelector('.ww-citation-primary')? document.querySelector('.ww-citation-primary').innerText.match(/Issue (\d+), /)? document.querySelector('.ww-citation-primary').innerText.match(/Issue (\d+), /)[1] : "" : "";
+    }
     // const volume = (document.querySelector('.volume--title')?.textContent.match(/Volume (\d+),/) || [])[1] || '';
     // const issue = (document.querySelector('.volume--title')?.textContent.match(/Issue (\d+)/) || [])[1] || '';
 
@@ -219,7 +239,7 @@ module.exports = function extractMetadata() {
 
     let author_orcids = getOrcids();
 
-    const type = document.querySelector('.journal-info__format-label')? document.querySelector('.journal-info__format-label').innerText : "";
+    const type = 'article';
     // const language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
     // const affiliation = getMetaAttributes(['meta[name="citation_author_institution"]'], 'content');
     const keywords = Array.from(document.querySelectorAll('.kwd-part')).map(keyword => keyword.textContent.trim()).filter(Boolean).join('; ') || '';

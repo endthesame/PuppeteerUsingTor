@@ -55,7 +55,6 @@ async function shouldChangeIP(page) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();
-        log('IP address changed successfully.');
         await getCurrentIP();
         return true;
     }
