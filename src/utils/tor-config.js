@@ -19,6 +19,15 @@ async function shouldChangeIP(page) {
     });
     const currentURL = page.url();
 
+    const isTitleAvailable = await page.evaluate(() => {
+        let title = document.querySelector('.article-title-main')? document.querySelector('.article-title-main').innerText.trim() : "";
+        if (title == ""){
+            return false;
+        } else {
+            return true;
+        }
+    });
+
     // const isTitleAvailable = await page.evaluate(() => {
     //     if (document.querySelector('.uk-article-title')){
     //         return true;
@@ -42,7 +51,7 @@ async function shouldChangeIP(page) {
     // });
 
     // Условие для смены IP-адреса, включая статус код и паттерн в URL
-    if (status > 399 || currentURL.includes("hcvalidate.perfdrive")) {
+    if (status > 399 || currentURL.includes("hcvalidate.perfdrive") || currentURL.includes("crawlprevention") || !isTitleAvailable || currentURL.includes("oup2-idp")) {
         log('Changing IP address...');
         await new Promise(resolve => setTimeout(resolve, 15000)); // чтобы тор не таймаутил
         await changeTorIp();

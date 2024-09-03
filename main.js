@@ -57,7 +57,7 @@ async function main() {
             // launch crawling
             await crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, linksFilePath, {
                 taskPath: path.isAbsolute(globalOptions.task)? globalOptions.task : path.join(__dirname, globalOptions.task),
-                downloadPDF: options.download_pdf,
+                downloadPDFmark: options.download_pdf,
                 checkOpenAccess: options.open_access,
                 useTor: options.use_tor,
                 uploadViaSSH: options.upload_ssh

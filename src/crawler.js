@@ -21,7 +21,7 @@ async function extractMetafields(page, task_path) {
     }
 }
 
-async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = false, checkOpenAccess = false, onlyjson = false, uploadViaSSH = false) {
+async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPath, task_path, url, downloadPDFmark = false, checkOpenAccess = false, uploadViaSSH = false) {
     log(`Processing URL: ${url}`);
     const meta_data = await extractMetafields(page, task_path);
     if (meta_data == false)
@@ -65,19 +65,16 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
             isOpenAccess = await checkAccess(page);
     
             if (!isOpenAccess) {
-                console.log(`Skipping downloading PDF from ${url} due to lack of open access.`);
+                log(`Skipping downloading PDF from ${url} due to lack of open access.`);
                 return; // Если нет open access, пропустить обработку URL
             }
         }
 
         if (isOpenAccess) {
             pdfLinksToDownload = await page.evaluate(() => {
-                let pdfLinks = document.querySelector(".pdf-btn-link")?document.querySelector(".pdf-btn-link").href : "";
-                if (!pdfLinks || pdfLinks.includes("javascript:void()")){
-                    pdfLinks = document.querySelector(".document-header-title-container .stats-document-lh-action-downloadPdf_3")?document.querySelector(".document-header-title-container .stats-document-lh-action-downloadPdf_3").href : "";
-                    if (!pdfLinks || pdfLinks.includes("javascript:void()")){
-                        return null;
-                    }
+                let pdfLinks = document.querySelector(".article-pdfLink")? document.querySelector(".article-pdfLink").href : '';
+                if (!pdfLinks){
+                    return null;
                 }
                 return pdfLinks.replace("reader", "pdf").replace("epdf", "pdf");
 
@@ -87,8 +84,8 @@ async function extractData(page, jsonFolderPath, pdfFolderPath, htmlFolderPath, 
                 // return pdfLinks;
             });
             // pdfLinksToDownload = [...new Set(pdfLinksToDownload)];
-
             if (pdfLinksToDownload){
+                log(`PDF link for ${url} was found`)
                 const pdfFileName = baseFileName + '.pdf';
                 const linksTxtPath = path.join(siteFolderPath, 'Links.txt');
                 fs.appendFileSync(linksTxtPath, `${pdfLinksToDownload} ${pdfFileName}\n`);
