@@ -105,7 +105,7 @@ async function extractMetafields(page) {
         if (title == ""){
             title = document.querySelector('.content-title')? document.querySelector('.content-title').innerText : "";
         }
-        let date = getMetaAttributes(['meta[name="dc.Title"]'], 'content').match(/\d{4}/)?getMetaAttributes(['meta[name="dc.Title"]'], 'content').match(/\d{4}/)[0] : "";
+        let date = getMetaAttributes(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)?getMetaAttributes(['meta[name="dc.Date"]'], 'content').match(/\d{4}/)[0] : "";
         if (date == ""){
             date = document.querySelector('.intent_journal_publication_date')? document.querySelector('.intent_journal_publication_date').innerText.match(/\d{4}/)?document.querySelector('.intent_journal_publication_date').innerText.match(/\d{4}/)[0] : "" : "";
         }
