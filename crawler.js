@@ -180,6 +180,9 @@ async function extractMetafields(page) {
         if (mf_journal == ""){
             mf_journal = document.querySelector('.banner-widget__heading')? document.querySelector('.banner-widget__heading').innerText.trim() : ""
         }
+        if (mf_journal == ""){
+            mf_journal = document.querySelector('.core-journal-description [property="isPartOf"]')? document.querySelector('.core-journal-description [property="isPartOf"]').innerText : "";
+        }
 
         let mf_issn_arr = Array.from(document.querySelectorAll('.footer__nav')).filter(block => block.innerText.includes("ISSN")).map(elem => elem.innerText.match(/^ISSN: (\d+-[0-9A-Za-z])/) ? elem.innerText.match(/^ISSN: (\d+-[0-9A-Za-z]+)/)[1] : undefined).filter(issn_elem => issn_elem!=undefined)
         let mf_issn = "";
@@ -203,11 +206,13 @@ async function extractMetafields(page) {
         // if (issue == ""){
         //     issue = document.querySelector('.wd-jnl-art-breadcrumb-issue')? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)? document.querySelector('.wd-jnl-art-breadcrumb-issue').innerText.match(/Number (\d+)/)[1] : "" : "";
         // }
-        // let first_page = getMetaAttribute(['meta[name="citation_firstpage"]'], 'content');
-        // first_page = romanToNumberOrReturn(first_page);
-        // let last_page = getMetaAttribute(['meta[name="citation_lastpage"]'], 'content');
-        // last_page = romanToNumberOrReturn(last_page);
-        let language = getMetaAttributes(['meta[name="dc.Language"]'], 'content');
+
+        let first_page = document.querySelector('.core-journal-description .core-pagination [property="pageStart"]')? document.querySelector('.core-journal-description .core-pagination [property="pageStart"]').innerText.match(/\d+/)? document.querySelector('.core-journal-description .core-pagination [property="pageStart"]').innerText.match(/\d+/)[0] : "" : "";
+        first_page = romanToNumberOrReturn(first_page);
+        let last_page = document.querySelector('.core-journal-description .core-pagination [property="pageEnd"]')? document.querySelector('.core-journal-description .core-pagination [property="pageEnd"]').innerText.match(/\d+/)? document.querySelector('.core-journal-description .core-pagination [property="pageEnd"]').innerText.match(/\d+/)[0] : "" : "";
+        last_page = romanToNumberOrReturn(last_page);
+
+        let language = getMetaAttribute(['meta[name="dc.Language"]'], 'content');
         if (language === 'en'){
             language = 'eng';
         }
@@ -219,7 +224,7 @@ async function extractMetafields(page) {
         if (keywords == ""){
             keywords = document.querySelector('meta[name="keywords"]')? document.querySelector('meta[name="keywords"]').content.replaceAll(",", "; ") : "";
         }
-        const mf_type = 'article'
+        const mf_type = '$#DT1'
         //ABSTRACT
         // const abstractXPath = '//div[@class="NLM_abstract"]//p/text()';
         // const abstractSnapshot = document.evaluate(abstractXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -254,7 +259,7 @@ async function extractMetafields(page) {
         }).filter(elem => elem != undefined)
         let affiliation = [...new Set(affiliationArr)].join(';;');
     
-        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '144': affiliation, '239': mf_type, '234': orcid};
+        var metadata = { "202": title, "203": date, "200": authors, "233": mf_doi, '232': mf_journal, '184': mf_issn, '185': mf_eissn, '176': volume, '208': issue, '81': abstract, '235': publisher, '201': keywords, '205': language, '144': affiliation, '239': mf_type, '234': orcid, '197': first_page, '198': last_page};
         if (!title)
         {
             metadata = false
@@ -341,8 +346,8 @@ async function crawl(jsonFolderPath, pdfFolderPath, htmlFolderPath, siteFolderPa
             await getCurrentIP();
 
             browser = await puppeteer.launch({
-                //args: ['--proxy-server=127.0.0.1:8118'],
-                headless: 'new' //'new' for "true mode" and false for "debug mode (Browser open))"
+                args: ['--proxy-server=127.0.0.1:8118'],
+                headless: false //'new' for "true mode" and false for "debug mode (Browser open))"
             });
 
             page = await browser.newPage();
